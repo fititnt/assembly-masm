@@ -1,1 +1,5 @@
-dosbox/
+*.EXE
+*.LST
+*.MAP
+*.OBJ
+*.SBR
