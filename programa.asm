@@ -18,7 +18,18 @@ String		db		MAXSTRING dup (?)	; Declarar no segmento de dados
 	; Variáveis/constantes específicas deste programas
 CR		equ		13
 LF		equ		10
-Ola		db		"Ola!",CR,LF,0
+
+Autor		db		"Emerson Rocha Luiz - 143503",CR,LF,0
+Cursor		db		"Comando>",CR,LF,0
+DadosArquivo	db		"Arquivo de dados:",CR,LF,0
+DadosResumo	db		"@todo resumo de dados",CR,LF,0
+Ajuda		db		"Caracteres de comandos:",CR,LF," [a] Solicita novo arquivo de dados",CR,LF," [g] Apresenta o relatorio geral",CR,LF," [e] Apresenta o relatório do engenheiro",CR,LF," [f] Encerra programa",CR,LF," [?] lista comandos validos",CR,LF,0
+;Ajuda		db		"Comandos: [?] [g] [e] [a] [f]",CR,LF,0
+RelatorioGeral	db		"@todo relatorio geral",CR,LF,0
+RelatorioEngN	db		"Engenheiro:",CR,LF,0
+RelatorioEng	db		"@todo relatorio engenheiro",CR,LF,0
+RelatorioErro	db		"Numero de engenheiro invalido",CR,LF,0
+EncerramentoMsg	db		"Programa encerrado",CR,LF,0
 
 	; Declaração do segmento de código
 	.code
@@ -146,9 +157,51 @@ printf_s	endp
 
 	.startup
 
-	; printf("Ola\r\n")
-	lea		bx,Ola
+	; TELA: Autoria
+	lea		bx,Autor
 	call	printf_s
+	call	gets
+
+	; TELA: Solicitação de arquivo de dados
+	lea		bx,DadosArquivo
+	call	printf_s
+	call	gets
+
+	; TELA: Resumo geral dos arquivo de dados (visualização prévia)
+	lea		bx,DadosResumo
+	call	printf_s
+	call	gets
+
+	; TELA: Tela de ajuda
+	lea		bx,Ajuda
+	call	printf_s
+	call	gets
+
+	; TELA: Resumo geral dos arquivo de dados (visualização sob demanda)
+	lea		bx,RelatorioGeral
+	call	printf_s
+	call	gets
+
+	; TELA: Engenheiro, solicitação da escolha
+	lea		bx,RelatorioEngN
+	call	printf_s
+	call	gets
+
+	; TELA: Engenheiro, exibição do relatório específico
+	lea		bx,RelatorioEng
+	call	printf_s
+	call	gets
+
+	; TELA: Engenheiro, erro de escolha de engenheiro inválido
+	lea		bx,RelatorioErro
+	call	printf_s
+	call	gets
+
+	; TELA: Engenheiro do programa
+	lea		bx,EncerramentoMsg
+	call	printf_s
+	call	gets
+
 
 	.exit
 
