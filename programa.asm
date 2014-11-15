@@ -23,8 +23,12 @@ Autor		db		"Emerson Rocha Luiz - 143503",CR,LF,0
 Cursor		db		"Comando>",CR,LF,0
 DadosArquivo	db		"Arquivo de dados:",CR,LF,0
 DadosResumo	db		"@todo resumo de dados",CR,LF,0
-Ajuda		db		"Caracteres de comandos:",CR,LF," [a] Solicita novo arquivo de dados",CR,LF," [g] Apresenta o relatorio geral",CR,LF," [e] Apresenta o relatório do engenheiro",CR,LF," [f] Encerra programa",CR,LF," [?] lista comandos validos",CR,LF,0
-;Ajuda		db		"Comandos: [?] [g] [e] [a] [f]",CR,LF,0
+Ajuda		db		"Caracteres de comandos:",CR,LF
+		db		" [a] Solicita novo arquivo de dados",CR,LF
+		db		" [g] Apresenta o relatorio geral",CR,LF
+		db		" [e] Apresenta o relatório do engenheiro",CR,LF
+		db		" [f] Encerra programa",CR,LF
+		db		" [?] lista comandos validos",CR,LF,0
 RelatorioGeral	db		"@todo relatorio geral",CR,LF,0
 RelatorioEngN	db		"Engenheiro:",CR,LF,0
 RelatorioEng	db		"@todo relatorio engenheiro",CR,LF,0
