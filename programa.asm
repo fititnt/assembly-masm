@@ -45,7 +45,10 @@ RelatorioErro	db		"Numero de engenheiro invalido",CR,LF,0
 EncerramentoMsg	db		"Programa encerrado",CR,LF,0
 
 DtAtualInt	db		0      ; Valor como inteiro do ultimo numero lido
+DtAtualEhNeg	db		0      ; Se o ultimo valor é negativo
 DtAtualString	db		"    " ; Valor como string do ultimo numero lido
+DtAtualLinha	db		0      ; Numero da linha no banco de dados
+DtAtualFim	db		0      ; Flag 0 ou 1 para saber se ultima string terminou
 DtNCidades	db		0      ; Numero de cidades atendidas
 DtNEng		db		0      ; Numero de engenheiros
 
@@ -277,18 +280,62 @@ GetFileName	endp
 ;Sai:   DtAtualString -> String concatenada
 ;--------------------------------------------------------------------
 DbAnalisa	proc	near
+	cmp		dx,2ch        ; if (DX = ,)
+	je		DbAnalisaFimString
+	cmp		dx,LF        ; if (DX = LF)
+	je		DbAnalisaFimLinha
+	cmp		dx,2dh        ; if (DX = -)
+	je		DbAnalisaEhNegativo
+	cmp		dx,CR        ; if (DX = CR || DX = " ")
+	je		DbAnalisaIgnora
+	cmp		dx,20h
+	je		DbAnalisaIgnora
 
+	jmp		DbAnalisaConcatena ; Se chegou ate aqui, é numero
+
+DbAnalisaFimLinha:
+	add		DtAtualLinha,1
+DbAnalisaFimString:
+	mov		DtAtualFim,1
+	mov		bh,0
+	call		DbStrToVal
+	jmp		DbAnalisaIgnora
+
+DbAnalisaEhNegativo:
+	mov		DtAtualEhNeg,1
+	jmp		DbAnalisaIgnora
+
+DbAnalisaConcatena:
+; @todo concatenar numero atual ao ultimo valor lido
+
+	add		bh,1 ; Contador do caracter atual na string
+
+DbAnalisaIgnora:
+	ret
 DbAnalisa	endp
 
 ;--------------------------------------------------------------------
 ;Função	Para uma string fornecida em DtAtualString, a converte para
 ;       valor numérico em DtAtualInt
 ;
+;Entra: (S) -> DS:BX -> Ponteiro para o string de origem
+;Sai:	(A) -> AX -> Valor "Hex" resultante
+;
 ;Entra: DtAtualString -> caracter atual
 ;Sai:   DtAtualInt -> String concatenada
 ;--------------------------------------------------------------------
 DbStrToVal	proc	near
 
+	call	atoi
+
+	cmp	DtAtualEhNeg,1 ; Se flag negativo esta ligada, negativar
+	jne	DbStrToValFim
+	neg	ax
+
+DbStrToValFim:
+	mov	DtAtualFim,0             ; Reseta flag
+	mov	DtAtualEhNeg,0           ; Reseta flag
+	ret
 DbStrToVal	endp
 
 	.startup
@@ -438,6 +485,8 @@ Continua3:
 	mov		dl,FileBuffer
 	int		21h
 	
+	call		DbAnalisa ; Chama analize
+
 	;	}
 	jmp		Again
 
