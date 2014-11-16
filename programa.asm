@@ -11,9 +11,17 @@
 	.data
 
 	; Variávies usadas internamentes nas funções
-FileBuffer	db		10 dup (?)		    ; Declarar no segmento de dados
+FileBuffer	db		10 dup (?)       ; Buffer de leitura do arquivo
 MAXSTRING	equ		200
-String		db		MAXSTRING dup (?)	; Declarar no segmento de dados
+String		db		MAXSTRING dup (?); Declarar no segmento de dados
+FileName		db		256 dup (?)		; Nome do arquivo a ser lido
+;FileBuffer		db		10 dup (?)		; Buffer de leitura do arquivo
+FileHandle		dw		0				; Handler do arquivo
+FileNameBuffer	db		150 dup (?)
+
+MsgPedeArquivo		db	"Nome do arquivo: ", 0
+MsgErroOpenFile		db	"Erro na abertura do arquivo.", CR, LF, 0
+MsgErroReadFile		db	"Erro na leitura do arquivo.", CR, LF, 0
 
 	; Variáveis/constantes específicas deste programas
 CR		equ		13
@@ -158,6 +166,56 @@ printf_s	proc	near
 ps_1:
 	ret
 printf_s	endp
+
+;
+;--------------------------------------------------------------------
+;Funcao: Le o nome do arquivo do teclado
+;void GetFileName(void)
+;{
+;	printf_s("Nome do arquivo: ");
+;
+;	// Lê uma linha do teclado
+;	FileNameBuffer[0]=100;
+;	gets(ah=0x0A, dx=&FileNameBuffer)
+;
+;	// Copia do buffer de teclado para o FileName
+;	for (char *s=FileNameBuffer+2, char *d=FileName, cx=FileNameBuffer[1]; cx!=0; s++,d++,cx--)
+;		*d = *s;
+;
+;	// Coloca o '\0' no final do string
+;	*d = '\0';
+;}
+;--------------------------------------------------------------------
+GetFileName	proc	near
+
+	;	printf_s("Nome do arquivo: ");
+	lea		bx,MsgPedeArquivo
+	call	printf_s
+
+	;	// Lê uma linha do teclado
+	;	FileNameBuffer[0]=100;
+	;	gets(ah=0x0A, dx=&FileNameBuffer)
+	mov		ah,0ah
+	lea		dx,FileNameBuffer
+	mov		byte ptr FileNameBuffer,100
+	int		21h
+
+	;	// Copia do buffer de teclado para o FileName
+	;	for (char *s=FileNameBuffer+2, char *d=FileName, cx=FileNameBuffer[1]; cx!=0; s++,d++,cx--)
+	;		*d = *s;
+	lea		si,FileNameBuffer+2
+	lea		di,FileName
+	mov		cl,FileNameBuffer+1
+	mov		ch,0
+	mov		ax,ds ; Ajusta ES=DS para poder usar o MOVSB
+	mov		es,ax
+	rep 	movsb
+
+	;	// Coloca o '\0' no final do string
+	;	*d = '\0';
+	mov		byte ptr es:[di],0
+	ret
+GetFileName	endp
 
 	.startup
 
