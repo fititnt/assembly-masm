@@ -14,9 +14,9 @@
 FileBuffer	db		10 dup (?)       ; Buffer de leitura do arquivo
 MAXSTRING	equ		200
 String		db		MAXSTRING dup (?); Declarar no segmento de dados
-FileName		db		256 dup (?)		; Nome do arquivo a ser lido
-;FileBuffer		db		10 dup (?)		; Buffer de leitura do arquivo
-FileHandle		dw		0				; Handler do arquivo
+FileName	db		256 dup (?)		; Nome do arquivo a ser lido
+;FileBuffer	db		10 dup (?)		; Buffer de leitura do arquivo
+FileHandle	dw		0				; Handler do arquivo
 FileNameBuffer	db		150 dup (?)
 
 MsgPedeArquivo		db	"Nome do arquivo: ", 0
@@ -37,15 +37,67 @@ Ajuda		db		"Caracteres de comandos:",CR,LF
 		db		" [e] Apresenta o relatório do engenheiro",CR,LF
 		db		" [f] Encerra programa",CR,LF
 		db		" [?] lista comandos validos",CR,LF,0
-RelatorioGeral	db		"@todo relatorio geral",CR,LF,0
+;RelatorioGeral	db		"@todo relatorio geral",CR,LF,0
+RelatorioGeral	db		256 dup (?)
 RelatorioEngN	db		"Engenheiro:",CR,LF,0
 RelatorioEng	db		"@todo relatorio engenheiro",CR,LF,0
 RelatorioErro	db		"Numero de engenheiro invalido",CR,LF,0
 EncerramentoMsg	db		"Programa encerrado",CR,LF,0
 
+DtAtualInt	db		0      ; Valor como inteiro do ultimo numero lido
+DtAtualString	db		"    " ; Valor como string do ultimo numero lido
+DtNCidades	db		0      ; Numero de cidades atendidas
+DtNEng		db		0      ; Numero de engenheiros
+
 	; Declaração do segmento de código
 	.code
 
+;
+;--------------------------------------------------------------------
+;Função:Converte um ASCII-DECIMAL para HEXA
+;Entra: (S) -> DS:BX -> Ponteiro para o string de origem
+;Sai:	(A) -> AX -> Valor "Hex" resultante
+;Algoritmo:
+;	A = 0;
+;	while (*S!='\0') {
+;		A = 10 * A + (*S - '0')
+;		++S;
+;	}
+;	return
+;--------------------------------------------------------------------
+atoi	proc near
+
+		; A = 0;
+		mov		ax,0
+		
+atoi_2:
+		; while (*S!='\0') {
+		cmp		byte ptr[bx], 0
+		jz		atoi_1
+
+		; 	A = 10 * A
+		mov		cx,10
+		mul		cx
+
+		; 	A = A + *S
+		mov		ch,0
+		mov		cl,[bx]
+		add		ax,cx
+
+		; 	A = A - '0'
+		sub		ax,'0'
+
+		; 	++S
+		inc		bx
+		
+		;}
+		jmp		atoi_2
+
+atoi_1:
+		; return
+		ret
+
+atoi	endp
 ;--------------------------------------------------------------------
 ;Função	Abre o arquivo cujo nome está no string apontado por DX
 ;		boolean fopen(char *FileName -> DX)
@@ -216,6 +268,28 @@ GetFileName	proc	near
 	mov		byte ptr es:[di],0
 	ret
 GetFileName	endp
+
+;--------------------------------------------------------------------
+;Função	Analisa um caracter por vez do banco de dados fornecido
+;	e gerencia a definição da base de dados em memória
+;
+;Entra: DX -> caracter atual
+;Sai:   DtAtualString -> String concatenada
+;--------------------------------------------------------------------
+DbAnalisa	proc	near
+
+DbAnalisa	endp
+
+;--------------------------------------------------------------------
+;Função	Para uma string fornecida em DtAtualString, a converte para
+;       valor numérico em DtAtualInt
+;
+;Entra: DtAtualString -> caracter atual
+;Sai:   DtAtualInt -> String concatenada
+;--------------------------------------------------------------------
+DbStrToVal	proc	near
+
+DbStrToVal	endp
 
 	.startup
 
