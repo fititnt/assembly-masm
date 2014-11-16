@@ -264,6 +264,104 @@ GetFileName	endp
 	call	printf_s
 	call	gets
 
+;====================================================================
+;void main(void)
+;{
+;	GetFileName();
+;
+;	if ( (ax=fopen(ah=0x3d, dx->FileName) ) ) {
+;		printf("Erro na abertura do arquivo.\r\n");
+;		exit(1);
+;	}
+;	FileHandle = ax
+;
+;	while(1) {
+;		if ( (ax=fread(ah=0x3f, bx=FileHandle, cx=1, dx=FileBuffer)) ) {
+;			printf ("Erro na leitura do arquivo.\r\n");
+;			fclose(bx=FileHandle)
+;			exit(1);
+;		}
+;		if (ax==0) {
+;			fclose(bx=FileHandle);
+;			exit(0);
+;		}
+;
+;		printf("%c", FileBuffer[0]);	// Coloca um caractere na tela
+;	}
+;}
+;
+;====================================================================
+		
+	;	GetFileName();
+	call	GetFileName
+
+	;	if ( (ax=fopen(ah=0x3d, dx->FileName) ) ) {
+	;		printf("Erro na abertura do arquivo.\r\n");
+	;		exit(1);
+	;	}
+	mov		al,0
+	lea		dx,FileName
+	mov		ah,3dh
+	int		21h
+	jnc		Continua1
+	
+	lea		bx,MsgErroOpenFile
+	call	printf_s
+	
+	.exit	1
+	
+Continua1:
+
+	;	FileHandle = ax
+	mov		FileHandle,ax		; Salva handle do arquivo
+
+	;	while(1) {
+Again:
+	;		if ( (ax=fread(ah=0x3f, bx=FileHandle, cx=1, dx=FileBuffer)) ) {
+	;			printf ("Erro na leitura do arquivo.\r\n");
+	;			fclose(bx=FileHandle)
+	;			exit(1);
+	;		}
+	mov		bx,FileHandle
+	mov		ah,3fh
+	mov		cx,1
+	lea		dx,FileBuffer
+	int		21h
+	jnc		Continua2
+	
+	lea		bx,MsgErroReadFile
+	call	printf_s
+	
+	mov		al,1
+	jmp		CloseAndFinal
+
+Continua2:
+	;		if (ax==0) {
+	;			fclose(bx=FileHandle);
+	;			exit(0);
+	;		}
+	cmp		ax,0
+	jne		Continua3
+
+	mov		al,0
+	jmp		CloseAndFinal
+
+Continua3:
+	;		printf("%c", FileBuffer[0]);	// Coloca um caractere na tela
+	mov		ah,2
+	mov		dl,FileBuffer
+	int		21h
+	
+	;	}
+	jmp		Again
+
+CloseAndFinal:
+	mov		bx,FileHandle		; Fecha o arquivo
+	mov		ah,3eh
+	int		21h
+
+Final:
+
 
 	.exit
 
