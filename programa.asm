@@ -219,51 +219,63 @@ GetFileName	endp
 
 	.startup
 
+TelaAutoria:
 	; TELA: Autoria
 	lea		bx,Autor
 	call	printf_s
 	call	gets
 
+TelaArquivoDados:
 	; TELA: Solicitação de arquivo de dados
 	lea		bx,DadosArquivo
 	call	printf_s
 	call	gets
+	jmp		SubrotinaLeArquivo
 
+TelaResumoGeral:
 	; TELA: Resumo geral dos arquivo de dados (visualização prévia)
 	lea		bx,DadosResumo
 	call	printf_s
 	call	gets
 
+TelaAjuda:
 	; TELA: Tela de ajuda
 	lea		bx,Ajuda
 	call	printf_s
 	call	gets
 
+TelaResumoGeralSobDemanda:
 	; TELA: Resumo geral dos arquivo de dados (visualização sob demanda)
 	lea		bx,RelatorioGeral
 	call	printf_s
 	call	gets
 
+TelaEngEscolha:
 	; TELA: Engenheiro, solicitação da escolha
 	lea		bx,RelatorioEngN
 	call	printf_s
 	call	gets
 
+TelaEngRelatorio:
 	; TELA: Engenheiro, exibição do relatório específico
 	lea		bx,RelatorioEng
 	call	printf_s
 	call	gets
 
+TelaEngErro:
 	; TELA: Engenheiro, erro de escolha de engenheiro inválido
 	lea		bx,RelatorioErro
 	call	printf_s
 	call	gets
 
-	; TELA: Engenheiro do programa
+TelaEncerramento:
+	; TELA: Encerramento do programa
 	lea		bx,EncerramentoMsg
 	call	printf_s
 	call	gets
+	jmp		Encerramento
 
+SubrotinaLeArquivo:
 ;====================================================================
 ;void main(void)
 ;{
@@ -361,8 +373,9 @@ CloseAndFinal:
 	int		21h
 
 Final:
+	jmp		TelaResumoGeral
 
-
+Encerramento:
 	.exit
 
 
