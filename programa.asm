@@ -13,7 +13,7 @@
 	; Variávies usadas internamentes nas funções
 FileBuffer	db		10 dup (?)       ; Buffer de leitura do arquivo
 MAXSTRING	equ		200
-String		db		MAXSTRING dup (?); Declarar no segmento de dados
+String		db		MAXSTRING dup (?)
 sw_n		dw		0
 sw_f		db		0
 sw_m		dw		0
@@ -31,10 +31,13 @@ CR		equ		13
 LF		equ		10
 
 Autor		db		"Emerson Rocha Luiz - 143503",CR,LF,0
-Cursor		db		"Comando>",CR,LF,0
-DadosArquivo	db		"Arquivo de dados:",CR,LF,0
-DadosResumo	db		"@todo resumo de dados",CR,LF,0
-Ajuda		db		"Caracteres de comandos:",CR,LF
+Cursor		db		CR,LF,"Comando>",0
+DadosArquivo	db		CR,LF,"Arquivo de dados:",0
+;DadosResumo	db		"@todo resumo de dados",CR,LF,0
+DadosResumo1	db		CR,LF,"  Arquivo de dados:",CR,LF
+		db		"      Numero de cidades...... ",0
+DadosResumo2	db		CR,LF,"      Numero de engenheiros.. ",0
+Ajuda		db		CR,LF,"Caracteres de comandos:",CR,LF
 		db		" [a] Solicita novo arquivo de dados",CR,LF
 		db		" [g] Apresenta o relatorio geral",CR,LF
 		db		" [e] Apresenta o relatório do engenheiro",CR,LF
@@ -42,18 +45,18 @@ Ajuda		db		"Caracteres de comandos:",CR,LF
 		db		" [?] lista comandos validos",CR,LF,0
 ;RelatorioGeral	db		"@todo relatorio geral",CR,LF,0
 RelatorioGeral	db		256 dup (?)
-RelatorioEngN	db		"Engenheiro:",CR,LF,0
-RelatorioEng	db		"@todo relatorio engenheiro",CR,LF,0
-RelatorioErro	db		"Numero de engenheiro invalido",CR,LF,0
-EncerramentoMsg	db		"Programa encerrado",CR,LF,0
+RelatorioEngN	db		CR,LF,"Engenheiro:",0
+RelatorioEng	db		CR,LF,"@todo relatorio engenheiro",0
+RelatorioErro	db		CR,LF,"Numero de engenheiro invalido",0
+EncerramentoMsg	db		CR,LF,"Programa encerrado",0
 
-DtAtualInt	db		0      ; Valor como inteiro do ultimo numero lido
-DtAtualEhNeg	db		0      ; Se o ultimo valor é negativo
+DtAtualInt	dw		0      ; Valor como inteiro do ultimo numero lido
+DtAtualEhNeg	dw		0      ; Se o ultimo valor é negativo
 DtAtualString	db		"    ",0 ; Valor como string do ultimo numero lido
-DtAtualLinha	db		0      ; Numero da linha no banco de dados
-DtAtualFim	db		0      ; Flag 0 ou 1 para saber se ultima string terminou
-DtNCidades	db		0      ; Numero de cidades atendidas
-DtNEng		db		0      ; Numero de engenheiros
+DtAtualLinha	dw		0      ; Numero da linha no banco de dados
+DtAtualFim	dw		0      ; Flag 0 ou 1 para saber se ultima string terminou
+DtNCidades	dw		0      ; Numero de cidades atendidas
+DtNEng		dw		0      ; Numero de engenheiros
 
 	; Declaração do segmento de código
 	.code
@@ -467,8 +470,24 @@ TelaArquivoDados:
 
 TelaResumoGeral:
 	; TELA: Resumo geral dos arquivo de dados (visualização prévia)
-	lea		bx,DadosResumo
+	lea		bx,DadosResumo1
 	call	printf_s
+
+	mov		ax,DtNEng
+	lea		bx,String
+	call	sprintf_w
+	lea		bx,String
+	call	printf_s
+
+	lea		bx,DadosResumo2
+	call	printf_s
+
+	mov		ax,DtNCidades
+	lea		bx,String
+	call	sprintf_w
+	lea		bx,String
+	call	printf_s
+
 	call	gets
 
 TelaAjuda:
@@ -593,9 +612,9 @@ Continua2:
 
 Continua3:
 	;		printf("%c", FileBuffer[0]);	// Coloca um caractere na tela
-	mov		ah,2
-	mov		dl,FileBuffer
-	int		21h
+	;mov		ah,2
+	;mov		dl,FileBuffer
+	;int		21h
 	
 	call		DbAnalisa ; Chama analize
 
