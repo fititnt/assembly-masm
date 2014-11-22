@@ -14,6 +14,9 @@
 FileBuffer	db		10 dup (?)       ; Buffer de leitura do arquivo
 MAXSTRING	equ		200
 String		db		MAXSTRING dup (?); Declarar no segmento de dados
+sw_n		dw		0
+sw_f		db		0
+sw_m		dw		0
 FileName	db		256 dup (?)		; Nome do arquivo a ser lido
 ;FileBuffer	db		10 dup (?)		; Buffer de leitura do arquivo
 FileHandle	dw		0				; Handler do arquivo
@@ -46,7 +49,7 @@ EncerramentoMsg	db		"Programa encerrado",CR,LF,0
 
 DtAtualInt	db		0      ; Valor como inteiro do ultimo numero lido
 DtAtualEhNeg	db		0      ; Se o ultimo valor é negativo
-DtAtualString	db		"    " ; Valor como string do ultimo numero lido
+DtAtualString	db		"    ",0 ; Valor como string do ultimo numero lido
 DtAtualLinha	db		0      ; Numero da linha no banco de dados
 DtAtualFim	db		0      ; Flag 0 ou 1 para saber se ultima string terminou
 DtNCidades	db		0      ; Numero de cidades atendidas
@@ -222,6 +225,110 @@ ps_1:
 	ret
 printf_s	endp
 
+;--------------------------------------------------------------------
+;Função: Converte um inteiro (n) para (string)
+;		 sprintf(string, "%d", n)
+;
+;void sprintf_w(char *string->BX, WORD n->AX) {
+;	k=5;
+;	m=10000;
+;	f=0;
+;	do {
+;		quociente = n / m : resto = n % m;	// Usar instrução DIV
+;		if (quociente || f) {
+;			*string++ = quociente+'0'
+;			f = 1;
+;		}
+;		n = resto;
+;		m = m/10;
+;		--k;
+;	} while(k);
+;
+;	if (!f)
+;		*string++ = '0';
+;	*string = '\0';
+;}
+;
+;Associação de variaveis com registradores e memória
+;	string	-> bx
+;	k		-> cx
+;	m		-> sw_m dw
+;	f		-> sw_f db
+;	n		-> sw_n	dw
+;--------------------------------------------------------------------
+
+sprintf_w	proc	near
+
+;void sprintf_w(char *string, WORD n) {
+	mov		sw_n,ax
+
+;	k=5;
+	mov		cx,5
+
+;	m=10000;
+	mov		sw_m,10000
+
+;	f=0;
+	mov		sw_f,0
+
+;	do {
+sw_do:
+
+;		quociente = n / m : resto = n % m;	// Usar instrução DIV
+	mov		dx,0
+	mov		ax,sw_n
+	div		sw_m
+
+;		if (quociente || f) {
+;			*string++ = quociente+'0'
+;			f = 1;
+;		}
+	cmp		al,0
+	jne		sw_store
+	cmp		sw_f,0
+	je		sw_continue
+sw_store:
+	add		al,'0'
+	mov		[bx],al
+	inc		bx
+
+	mov		sw_f,1
+sw_continue:
+
+;		n = resto;
+	mov		sw_n,dx
+
+;		m = m/10;
+	mov		dx,0
+	mov		ax,sw_m
+	mov		bp,10
+	div		bp
+	mov		sw_m,ax
+
+;		--k;
+	dec		cx
+
+;	} while(k);
+	cmp		cx,0
+	jnz		sw_do
+
+;	if (!f)
+;		*string++ = '0';
+	cmp		sw_f,0
+	jnz		sw_continua2
+	mov		[bx],'0'
+	inc		bx
+sw_continua2:
+
+
+;	*string = '\0';
+	mov		byte ptr[bx],0
+
+;}
+	ret
+
+sprintf_w	endp
+
 ;
 ;--------------------------------------------------------------------
 ;Funcao: Le o nome do arquivo do teclado
@@ -294,11 +401,14 @@ DbAnalisa	proc	near
 	jmp		DbAnalisaConcatena ; Se chegou ate aqui, é numero
 
 DbAnalisaFimLinha:
-	add		DtAtualLinha,1
+	inc		DtAtualLinha
 DbAnalisaFimString:
 	mov		DtAtualFim,1
 	mov		bh,0
 	call		DbStrToVal
+
+	mov		bx, offset DtAtualString   ; @debug, apagar
+	call 		printf_s                   ; @debug, apagar
 	jmp		DbAnalisaIgnora
 
 DbAnalisaEhNegativo:
@@ -307,8 +417,10 @@ DbAnalisaEhNegativo:
 
 DbAnalisaConcatena:
 ; @todo concatenar numero atual ao ultimo valor lido
-
-	add		bh,1 ; Contador do caracter atual na string
+	mov		di, offset DtAtualString
+	mov 		di, dx
+	;mov 		DtAtualString+bh, dx
+	inc		bh ; Contador do caracter atual na string
 
 DbAnalisaIgnora:
 	ret
@@ -348,10 +460,10 @@ TelaAutoria:
 
 TelaArquivoDados:
 	; TELA: Solicitação de arquivo de dados
-	lea		bx,DadosArquivo
-	call	printf_s
-	call	gets
+	;lea		bx,DadosArquivo
+	;call	printf_s
 	jmp		SubrotinaLeArquivo
+	call	gets
 
 TelaResumoGeral:
 	; TELA: Resumo geral dos arquivo de dados (visualização prévia)
