@@ -394,10 +394,12 @@ GetFileName	endp
 DDebug		proc	near
 	lea		bx,DDebugStartEnd
 	call	printf_s
-
+	lea		bx,DDebugReg1
+	call	printf_s
 ;;;;; Registrador
 	; sprintf (String, "%d", 2943);
-	mov		ax,RegistradorAqui
+	;mov		ax,RegistradorAqui
+	mov		ax,dx
 	lea		bx,DDebugVal
 	call	sprintf_w
 
@@ -410,32 +412,79 @@ DDebug		proc	near
 
 	ret
 DDebug	endp
+
+;--------------------------------------------------------------------
+;Função usada somente para debug
+; @see http://support.microsoft.com/kb/85068/en-us
+;--------------------------------------------------------------------
+DDebubPilha		proc	near
+          ;mov ax, 0FFFFh     ; Load AX with something distinctive.
+
+          push dx            ; Save all registers that are used.
+          push cx
+          push bx
+          push ax
+
+          mov dx, 4          ; Loop will print out 4 hex characters.
+nexthex:
+          mov cl, 4          ; Rotate register 4 bits.
+          rol ax, cl
+          push ax            ; Save current value in AX.
+          rol ax, cl
+          push ax            ; Save current value in AX.
+
+          and al, 0Fh        ; Mask off all but 4 lowest bits.
+          cmp al, 10         ; Check to see if digit is 0-9.
+          jl decimal         ; Digit is 0-9.
+          add al, 7          ; Add 7 for Digits A-F.
+decimal:
+          add al, 30h        ; Add 30h to get ASCII character.
+
+          mov bx, 0003h      ; BH= Page 0, BL= Foreground Color.
+          mov ah, 0Eh        ; Prepare for interrupt.
+          int 10h            ; Do BIOS call to print out value.
+	  ;int 21h            ; Do MS-DOS call to print out value.
+
+          pop ax             ; Restore value to AX.
+          dec dx             ; Decrement loop counter.
+          jnz nexthex        ; Loop back if there is another character
+                             ; to print.
+
+          pop ax             ; Restore all registers that were used.
+          pop bx
+          pop cx
+          pop dx
+          ret
+DDebubPilha ENDP
+
 ;--------------------------------------------------------------------
 ;Função	Analisa um caracter por vez do banco de dados fornecido
 ;	e gerencia a definição da base de dados em memória
 ;
 ;Entra: DX -> caracter atual
+;Entra: DL -> caracter atual
 ;Sai:   DtAtualString -> String concatenada
 ;--------------------------------------------------------------------
 DbAnalisa	proc	near
 
-	call 	DDebug
+	;call 	DDebug
 
-	cmp		dx,2ch        ; if (DX = ,)
+	cmp		dl,2ch        ; if (dl = ,)
 	je		DbAnalisaFimString
-	cmp		dx,LF        ; if (DX = LF)
+	cmp		dl,LF        ; if (dl = LF)
 	je		DbAnalisaFimLinha
-	cmp		dx,2dh        ; if (DX = -)
+	cmp		dl,2dh        ; if (dl = -)
 	je		DbAnalisaEhNegativo
-	cmp		dx,CR        ; if (DX = CR || DX = " ")
+	cmp		dl,CR        ; if (dl = CR || dl = " ")
 	je		DbAnalisaIgnora
-	cmp		dx,20h
+	cmp		dl,20h
 	je		DbAnalisaIgnora
 
 	jmp		DbAnalisaConcatena ; Se chegou ate aqui, é numero
 
 DbAnalisaFimLinha:
 	;mov		DtAtualLinhaVal,-1 ;
+
 	inc		DtAtualLinha
 DbAnalisaFimString:
 	inc		DtAtualLinhaVal
@@ -443,8 +492,8 @@ DbAnalisaFimString:
 	mov		bh,0
 	call		DbStrToVal
 
-	mov		bx, offset DtAtualString   ; @debug, apagar
-	call 		printf_s                   ; @debug, apagar
+	;mov		bx, offset DtAtualString   ; @debug, apagar
+	;call 		printf_s                   ; @debug, apagar
 
 	call	DbAnalisaSalva
 
@@ -481,10 +530,13 @@ DbAnalisaSalvaLinha0:
 
 	cmp	DtAtualLinhaVal,1
 	je	DbAnalisaSalvaLinha01
+	mov	ax,DtAtualInt
 	mov	DtNEng,ax          ; Copia ultimo numero calculado
 	jmp	DbAnalisaSalvaFim
 
 DbAnalisaSalvaLinha01:
+
+	mov	ax,DtAtualInt
 	mov	DtNCidades,ax      ; Copia ultimo numero calculado
 	jmp	DbAnalisaSalvaFim
 DbAnalisaSalvaLinha1:
@@ -494,7 +546,7 @@ DbAnalisaSalvaLinha2p:
 
 DbAnalisaSalvaFim:
 
-	call DDebug
+	;call DDebug
 	ret
 DbAnalisaSalva	endp
 
@@ -519,6 +571,7 @@ DbStrToVal	proc	near
 DbStrToValFim:
 	mov	DtAtualFim,0             ; Reseta flag
 	mov	DtAtualEhNeg,0           ; Reseta flag
+	mov	DtAtualInt,ax
 	ret
 DbStrToVal	endp
 
@@ -557,6 +610,8 @@ TelaResumoGeral:
 	call	sprintf_w
 	lea		bx,String
 	call	printf_s
+
+	;call	DDebubPilha
 
 	call	gets
 
@@ -682,11 +737,12 @@ Continua2:
 
 Continua3:
 	;		printf("%c", FileBuffer[0]);	// Coloca um caractere na tela
-	;mov		ah,2
-	;mov		dl,FileBuffer
-	;int		21h
+	mov		ah,2
+	mov		dl,FileBuffer
+	int		21h
 	
-	call		DbAnalisa ; Chama analize
+	;call		DDebug
+	;call		DbAnalisa ; Chama analize
 
 	;	}
 	jmp		Again
