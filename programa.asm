@@ -22,9 +22,14 @@ FileName	db		256 dup (?)		; Nome do arquivo a ser lido
 FileHandle	dw		0				; Handler do arquivo
 FileNameBuffer	db		150 dup (?)
 
-MsgPedeArquivo		db	"Nome do arquivo: ", 0
-MsgErroOpenFile		db	"Erro na abertura do arquivo.", CR, LF, 0
-MsgErroReadFile		db	"Erro na leitura do arquivo.", CR, LF, 0
+MsgPedeArquivo	db		"Nome do arquivo: ", 0
+MsgErroOpenFile	db		"Erro na abertura do arquivo.",CR,LF,0
+MsgErroReadFile	db		"Erro na leitura do arquivo.",CR,LF,0
+
+DDebugStartEnd	db		CR,LF,"-- Debug --",CR,LF,0
+DDebugReg1	db		"Registrador: ",0
+DDebugString	db		CR,LF,"String: ",0
+DDebugVal	db		MAXSTRING dup (?)
 
 	; Variáveis/constantes específicas deste programas
 CR		equ		13
@@ -54,6 +59,7 @@ DtAtualInt	dw		0      ; Valor como inteiro do ultimo numero lido
 DtAtualEhNeg	dw		0      ; Se o ultimo valor é negativo
 DtAtualString	db		"    ",0 ; Valor como string do ultimo numero lido
 DtAtualLinha	dw		0      ; Numero da linha no banco de dados
+DtAtualLinhaVal	dw		0      ; Numero do dado da linha atual
 DtAtualFim	dw		0      ; Flag 0 ou 1 para saber se ultima string terminou
 DtNCidades	dw		0      ; Numero de cidades atendidas
 DtNEng		dw		0      ; Numero de engenheiros
@@ -383,6 +389,28 @@ GetFileName	proc	near
 GetFileName	endp
 
 ;--------------------------------------------------------------------
+;Função usada somente para debug
+;--------------------------------------------------------------------
+DDebug		proc	near
+	lea		bx,DDebugStartEnd
+	call	printf_s
+
+;;;;; Registrador
+	; sprintf (String, "%d", 2943);
+	mov		ax,RegistradorAqui
+	lea		bx,DDebugVal
+	call	sprintf_w
+
+	; printf("%s", String);
+	lea		bx,DDebugVal
+	call	printf_s
+
+	lea		bx,DDebugStartEnd
+	call	printf_s
+
+	ret
+DDebug	endp
+;--------------------------------------------------------------------
 ;Função	Analisa um caracter por vez do banco de dados fornecido
 ;	e gerencia a definição da base de dados em memória
 ;
@@ -390,6 +418,9 @@ GetFileName	endp
 ;Sai:   DtAtualString -> String concatenada
 ;--------------------------------------------------------------------
 DbAnalisa	proc	near
+
+	call 	DDebug
+
 	cmp		dx,2ch        ; if (DX = ,)
 	je		DbAnalisaFimString
 	cmp		dx,LF        ; if (DX = LF)
@@ -404,14 +435,19 @@ DbAnalisa	proc	near
 	jmp		DbAnalisaConcatena ; Se chegou ate aqui, é numero
 
 DbAnalisaFimLinha:
+	;mov		DtAtualLinhaVal,-1 ;
 	inc		DtAtualLinha
 DbAnalisaFimString:
+	inc		DtAtualLinhaVal
 	mov		DtAtualFim,1
 	mov		bh,0
 	call		DbStrToVal
 
 	mov		bx, offset DtAtualString   ; @debug, apagar
 	call 		printf_s                   ; @debug, apagar
+
+	call	DbAnalisaSalva
+
 	jmp		DbAnalisaIgnora
 
 DbAnalisaEhNegativo:
@@ -428,6 +464,39 @@ DbAnalisaConcatena:
 DbAnalisaIgnora:
 	ret
 DbAnalisa	endp
+
+;--------------------------------------------------------------------
+; Função que, tão logo um numeral tenha sido lido do banco de dados
+; o salva na estrutura de dados correspondente
+;--------------------------------------------------------------------
+DbAnalisaSalva	proc	near
+
+	cmp	DtAtualLinha,0
+	je	DbAnalisaSalvaLinha0
+	cmp	DtAtualLinha,1
+	je	DbAnalisaSalvaLinha1
+	jmp	DbAnalisaSalvaLinha2p
+
+DbAnalisaSalvaLinha0:
+
+	cmp	DtAtualLinhaVal,1
+	je	DbAnalisaSalvaLinha01
+	mov	DtNEng,ax          ; Copia ultimo numero calculado
+	jmp	DbAnalisaSalvaFim
+
+DbAnalisaSalvaLinha01:
+	mov	DtNCidades,ax      ; Copia ultimo numero calculado
+	jmp	DbAnalisaSalvaFim
+DbAnalisaSalvaLinha1:
+
+	jmp	DbAnalisaSalvaFim
+DbAnalisaSalvaLinha2p:
+
+DbAnalisaSalvaFim:
+
+	call DDebug
+	ret
+DbAnalisaSalva	endp
 
 ;--------------------------------------------------------------------
 ;Função	Para uma string fornecida em DtAtualString, a converte para
@@ -457,6 +526,7 @@ DbStrToVal	endp
 
 TelaAutoria:
 	; TELA: Autoria
+
 	lea		bx,Autor
 	call	printf_s
 	call	gets
