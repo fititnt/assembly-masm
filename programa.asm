@@ -33,6 +33,7 @@ DDebugStartEnd	db		CR,LF,"-- Debug --",CR,LF,0
 DDebugReg1	db		"Registrador: ",0
 DDebugString	db		CR,LF,"String: ",0
 DDebugVal	db		MAXSTRING dup (?)
+DDebugValMacro	db		MAXSTRING dup (?)
 
 	; Variáveis/constantes específicas deste programas
 CR		equ		13
@@ -60,10 +61,12 @@ EncerramentoMsg	db		CR,LF,"Programa encerrado",0
 
 DtAtualInt	dw		7      ; Valor como inteiro do ultimo numero lido
 DtAtualEhNeg	dw		0      ; Se o ultimo valor é negativo
-DtAtualString	db		"    ",0 ; Valor como string do ultimo numero lido
+;DtAtualString	db		"    ",0 ; Valor como string do ultimo numero lido
+DtAtualString	db		7 dup (?) ; Valor concatenado da string atual
+DtAtualStringC	dw		0         ; Numero de caracteres na string atual
 DtAtualChar	db		" ",0
 DtAtualLinha	dw		0      ; Numero da linha no banco de dados
-DtAtualLinhaVal	dw		0      ; Numero do dado da linha atual
+DtAtualColuna	dw		0      ; Numero do dado da linha atual
 DtAtualFim	dw		0      ; Flag 0 ou 1 para saber se ultima string terminou
 DtNCidades	dw		77      ; Numero de cidades atendidas
 DtNEng		dw		77      ; Numero de engenheiros
@@ -74,16 +77,19 @@ DtNEng		dw		77      ; Numero de engenheiros
 ;--------------------------------------------------------------------
 ; Macros, usadas somente para debug
 ;--------------------------------------------------------------------
-beep MACRO
-	mov ah, 2 ;; Select DOS Print Char function
-	mov dl, 7 ;; Select ASCII 7 (bell)
-	int 21h ;; Call DOS
-ENDM
 
 writechar MACRO char
 	mov ah, 2    ;; Select DOS Print Char function
 	mov dl, char ;; Select ASCII char
 	int 21h      ;; Call DOS
+ENDM
+
+writenumber MACRO number
+	mov		ax,number
+	lea		bx,DDebugValMacro
+	call	sprintf_w
+	lea		bx,DDebugValMacro
+	call	printf_s
 ENDM
 ;
 ;--------------------------------------------------------------------
@@ -431,60 +437,29 @@ DDebug		proc	near
 	ret
 DDebug	endp
 
-;--------------------------------------------------------------------
-;Função usada somente para debug
-; @see http://support.microsoft.com/kb/85068/en-us
-;--------------------------------------------------------------------
-DDebubPilha		proc	near
-          ;mov ax, 0FFFFh     ; Load AX with something distinctive.
-
-          push dx            ; Save all registers that are used.
-          push cx
-          push bx
-          push ax
-
-          mov dx, 4          ; Loop will print out 4 hex characters.
-nexthex:
-          mov cl, 4          ; Rotate register 4 bits.
-          rol ax, cl
-          push ax            ; Save current value in AX.
-          rol ax, cl
-          push ax            ; Save current value in AX.
-
-          and al, 0Fh        ; Mask off all but 4 lowest bits.
-          cmp al, 10         ; Check to see if digit is 0-9.
-          jl decimal         ; Digit is 0-9.
-          add al, 7          ; Add 7 for Digits A-F.
-decimal:
-          add al, 30h        ; Add 30h to get ASCII character.
-
-          mov bx, 0003h      ; BH= Page 0, BL= Foreground Color.
-          mov ah, 0Eh        ; Prepare for interrupt.
-          int 10h            ; Do BIOS call to print out value.
-	  ;int 21h            ; Do MS-DOS call to print out value.
-
-          pop ax             ; Restore value to AX.
-          dec dx             ; Decrement loop counter.
-          jnz nexthex        ; Loop back if there is another character
-                             ; to print.
-
-          pop ax             ; Restore all registers that were used.
-          pop bx
-          pop cx
-          pop dx
-          ret
-DDebubPilha ENDP
 
 ;--------------------------------------------------------------------
-;Função	Analisa um caracter por vez do banco de dados fornecido
-;	e gerencia a definição da base de dados em memória
+; Função principal que recebe caracter por caracter os dados do arquivo
+; do banco de dados, os analisa e tão logo esteja com informação suficiente
+; salva nas estruturas de dados
 ;
-;Entra: DL -> caracter atual, em HEX
-;Sai:   DtAtualString -> String concatenada
+; @see  DbAnalisaSalva   Quando um valor estiver concatenado para ser 
+;                        analizado, é chamada para convertê-lo para
+;                        valor numérico e salvar na estrutura de dados 
+;
+;Entra: DL             -> caracter atual do banco de dados, em HEX
+;Sai:   DtAtualString  -> String concatenada (parcial ou completa)
+;       DtAtualStringC -> Posição do próx. char em DtAtualString
+;       DtAtualLinha   -> Linha do arquivo de banco de dados atual
+;       DtAtualColuna  -> Coluna do valor na linha atual
+;       DtAtualEhNeg   -> 1 se numero negavo, 0 se positivo
+;       
 ;--------------------------------------------------------------------
 DbAnalisa	proc	near
 
-	;call 	DDebug
+
+	; Testes básicos para saber qual é o tipo de caracter atual
+	; conforme o caso, irá definir demais variáveis de acordo
 
 	cmp		dl,2ch        ; if (dl = ,)
 	je		DbAnalisaFimString
@@ -500,17 +475,21 @@ DbAnalisa	proc	near
 	jmp		DbAnalisaConcatena ; Se chegou ate aqui, é numero
 
 DbAnalisaFimLinha:
-	;mov		DtAtualLinhaVal,-1 ;
+	;mov		DtAtualColuna,-1 ;
 
 	inc		DtAtualLinha
 DbAnalisaFimString:
-	inc		DtAtualLinhaVal
+	inc		DtAtualColuna
 	mov		DtAtualFim,1
 	mov		bh,0
-	;call		DbStrToVal
 
-	;mov		bx, offset DtAtualString   ; @debug, apagar
-	;call 		printf_s                   ; @debug, apagar
+	; Chama atoi e salva numero atual em DtAtualInt
+	 ; @todo trocar por DtAtualString
+	mov		byte ptr DtAtualChar, dl
+	lea		bx,DtAtualChar
+	call	atoi
+	mov		DtAtualInt,ax
+	writenumber DtAtualInt
 
 	call	DbAnalisaSalva
 
@@ -533,8 +512,20 @@ DbAnalisaIgnora:
 DbAnalisa	endp
 
 ;--------------------------------------------------------------------
-; Função que, tão logo um numeral tenha sido lido do banco de dados
-; o salva na estrutura de dados correspondente
+; Chamada por DbAnalisa, analiza os dados pré-processados e os converte
+; para estrutura de dados
+; 
+; @see  atoi             Usada para converter de string para numerico
+;
+;Entra: DtAtualString  -> String concatenada
+;       DtAtualLinha   -> Linha do arquivo de banco de dados atual
+;       DtAtualColuna  -> Coluna do valor na linha atual
+;       DtAtualEhNeg   -> 1 se numero negavo, 0 se positivo
+;Sai:   DtAtualInt     -> valor numérico do dado atual
+;       DtNCidades     -> Número de cidades
+;       DtNEng         -> Número de engenheiros
+;       ...
+;
 ;--------------------------------------------------------------------
 DbAnalisaSalva	proc	near
 
@@ -546,7 +537,7 @@ DbAnalisaSalva	proc	near
 
 DbAnalisaSalvaLinha0:
 
-	cmp	DtAtualLinhaVal,1
+	cmp	DtAtualColuna,1
 	je	DbAnalisaSalvaLinha01
 	mov	ax,DtAtualInt
 	mov	DtNEng,ax          ; Copia ultimo numero calculado
@@ -568,7 +559,7 @@ DbAnalisaSalvaLinha2p:
 
 DbAnalisaSalvaFim:
 
-	;call DDebug
+
 	ret
 DbAnalisaSalva	endp
 
@@ -761,12 +752,11 @@ Continua2:
 
 Continua3:
 	;		printf("%c", FileBuffer[0]);	// Coloca um caractere na tela
-	mov		ah,2
-	mov		dl,FileBuffer
-	int		21h
+	;mov		ah,2
+	;mov		dl,FileBuffer
+	;int		21h
 
-	;call		DDebug
-	call		DbAnalisa ; Chama analize
+	call		DbAnalisa ; Chama DbAnalisa caracter por caracter
 
 	;	}
 	jmp		Again
