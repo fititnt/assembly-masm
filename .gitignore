@@ -4,3 +4,5 @@
 *.OBJ
 *.SBR
 ftype.asm
+MASM611/INIT/*.CV4
+MASM611/INIT/*.STS

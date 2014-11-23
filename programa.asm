@@ -1,9 +1,12 @@
 ; @autor Emerson Rocha Luiz <emerson at alligo.com.br>
 ; @desc  Programa funcional escrito em assembly, compatível com MASM 6.11+
 ;------------------------------------------------------------------------------
+
+
+
 	; Declaração do modelo de segmentos
 	.model		small
-	
+INCLUDE /MASM611/INCLUDE/BIOS.INC
 	; Declaração do segmento de pilha
 	.stack
 
@@ -55,18 +58,33 @@ RelatorioEng	db		CR,LF,"@todo relatorio engenheiro",0
 RelatorioErro	db		CR,LF,"Numero de engenheiro invalido",0
 EncerramentoMsg	db		CR,LF,"Programa encerrado",0
 
-DtAtualInt	dw		0      ; Valor como inteiro do ultimo numero lido
+DtAtualInt	dw		7      ; Valor como inteiro do ultimo numero lido
 DtAtualEhNeg	dw		0      ; Se o ultimo valor é negativo
 DtAtualString	db		"    ",0 ; Valor como string do ultimo numero lido
+DtAtualChar	db		" ",0
 DtAtualLinha	dw		0      ; Numero da linha no banco de dados
 DtAtualLinhaVal	dw		0      ; Numero do dado da linha atual
 DtAtualFim	dw		0      ; Flag 0 ou 1 para saber se ultima string terminou
-DtNCidades	dw		0      ; Numero de cidades atendidas
-DtNEng		dw		0      ; Numero de engenheiros
+DtNCidades	dw		77      ; Numero de cidades atendidas
+DtNEng		dw		77      ; Numero de engenheiros
 
 	; Declaração do segmento de código
 	.code
 
+;--------------------------------------------------------------------
+; Macros, usadas somente para debug
+;--------------------------------------------------------------------
+beep MACRO
+	mov ah, 2 ;; Select DOS Print Char function
+	mov dl, 7 ;; Select ASCII 7 (bell)
+	int 21h ;; Call DOS
+ENDM
+
+writechar MACRO char
+	mov ah, 2    ;; Select DOS Print Char function
+	mov dl, char ;; Select ASCII char
+	int 21h      ;; Call DOS
+ENDM
 ;
 ;--------------------------------------------------------------------
 ;Função:Converte um ASCII-DECIMAL para HEXA
@@ -461,8 +479,7 @@ DDebubPilha ENDP
 ;Função	Analisa um caracter por vez do banco de dados fornecido
 ;	e gerencia a definição da base de dados em memória
 ;
-;Entra: DX -> caracter atual
-;Entra: DL -> caracter atual
+;Entra: DL -> caracter atual, em HEX
 ;Sai:   DtAtualString -> String concatenada
 ;--------------------------------------------------------------------
 DbAnalisa	proc	near
@@ -490,7 +507,7 @@ DbAnalisaFimString:
 	inc		DtAtualLinhaVal
 	mov		DtAtualFim,1
 	mov		bh,0
-	call		DbStrToVal
+	;call		DbStrToVal
 
 	;mov		bx, offset DtAtualString   ; @debug, apagar
 	;call 		printf_s                   ; @debug, apagar
@@ -501,6 +518,7 @@ DbAnalisaFimString:
 
 DbAnalisaEhNegativo:
 	mov		DtAtualEhNeg,1
+
 	jmp		DbAnalisaIgnora
 
 DbAnalisaConcatena:
@@ -535,6 +553,10 @@ DbAnalisaSalvaLinha0:
 	jmp	DbAnalisaSalvaFim
 
 DbAnalisaSalvaLinha01:
+
+	mov	byte ptr DtAtualChar,dl
+	lea	bx, DtAtualChar
+	call	DbStrToVal
 
 	mov	ax,DtAtualInt
 	mov	DtNCidades,ax      ; Copia ultimo numero calculado
@@ -579,12 +601,14 @@ DbStrToVal	endp
 
 TelaAutoria:
 	; TELA: Autoria
-
+	;writechar 'e'
+	;writechar dl
 	lea		bx,Autor
 	call	printf_s
 	call	gets
 
 TelaArquivoDados:
+        
 	; TELA: Solicitação de arquivo de dados
 	;lea		bx,DadosArquivo
 	;call	printf_s
@@ -740,9 +764,9 @@ Continua3:
 	mov		ah,2
 	mov		dl,FileBuffer
 	int		21h
-	
+
 	;call		DDebug
-	;call		DbAnalisa ; Chama analize
+	call		DbAnalisa ; Chama analize
 
 	;	}
 	jmp		Again
