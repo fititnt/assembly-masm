@@ -49,7 +49,7 @@ DadosResumo2	db		CR,LF,"      Numero de engenheiros.. ",0
 Ajuda		db		CR,LF,"Caracteres de comandos:",CR,LF
 		db		" [a] Solicita novo arquivo de dados",CR,LF
 		db		" [g] Apresenta o relatorio geral",CR,LF
-		db		" [e] Apresenta o relatório do engenheiro",CR,LF
+		db		" [e] Apresenta o relatorio do engenheiro",CR,LF
 		db		" [f] Encerra programa",CR,LF
 		db		" [?] lista comandos validos",CR,LF,0
 ;RelatorioGeral	db		"@todo relatorio geral",CR,LF,0
@@ -67,7 +67,7 @@ DtAtualStringC	dw		0         ; Numero de caracteres na string atual
 DtAtualChar	db		" ",0
 DtAtualLinha	dw		0      ; Numero da linha no banco de dados
 DtAtualColuna	dw		0      ; Numero do dado da linha atual
-DtAtualFim	dw		0      ; Flag 0 ou 1 para saber se ultima string terminou
+;DtAtualFim	dw		0      ; Flag 0 ou 1 para saber se ultima string terminou
 DtNCidades	dw		77      ; Numero de cidades atendidas
 DtNEng		dw		77      ; Numero de engenheiros
 
@@ -456,18 +456,18 @@ DDebug	endp
 ;       
 ;--------------------------------------------------------------------
 DbAnalisa	proc	near
-
+	;writechar dl
 
 	; Testes básicos para saber qual é o tipo de caracter atual
 	; conforme o caso, irá definir demais variáveis de acordo
 
 	cmp		dl,2ch        ; if (dl = ,)
 	je		DbAnalisaFimString
-	cmp		dl,LF        ; if (dl = LF)
+	cmp		dl,10h        ; if (dl = LF)
 	je		DbAnalisaFimLinha
 	cmp		dl,2dh        ; if (dl = -)
 	je		DbAnalisaEhNegativo
-	cmp		dl,CR        ; if (dl = CR || dl = " ")
+	cmp		dl,13h        ; if (dl = CR || dl = " ")
 	je		DbAnalisaIgnora
 	cmp		dl,20h
 	je		DbAnalisaIgnora
@@ -475,37 +475,51 @@ DbAnalisa	proc	near
 	jmp		DbAnalisaConcatena ; Se chegou ate aqui, é numero
 
 DbAnalisaFimLinha:
-	;mov		DtAtualColuna,-1 ;
-
 	inc		DtAtualLinha
-DbAnalisaFimString:
-	inc		DtAtualColuna
-	mov		DtAtualFim,1
-	mov		bh,0
+	; @todo replicar coração da rotina DbAnalisaFimString aqui
 
-	; Chama atoi e salva numero atual em DtAtualInt
-	 ; @todo trocar por DtAtualString
-	mov		byte ptr DtAtualChar, dl
-	lea		bx,DtAtualChar
-	call	atoi
-	mov		DtAtualInt,ax
-	writenumber DtAtualInt
+	; Fecha string com \0
+	mov		di, offset DtAtualString
+	add 		di,DtAtualStringC
+	mov		[di],0
 
+	call 	DbStrToVal            ; DtAtualString & DtAtualEhNeg -> DtAtualInt
 	call	DbAnalisaSalva
 
+	mov		DtAtualStringC,0
+	jmp	DbAnalisaIgnora
+DbAnalisaFimString:
+	inc		DtAtualColuna
+
+	; Fecha string com \0
+	mov		di, offset DtAtualString
+	add 		di,DtAtualStringC
+	mov		[di],0
+
+	;writechar '>'
+	;lea 	bx,DtAtualString
+	;call printf_s
+	;writechar '<'
+
+	call 	DbStrToVal            ; DtAtualString & DtAtualEhNeg -> DtAtualInt
+
+	;writechar '>'
+	;writenumber DtAtualInt
+	;writechar '<'
+
+	call	DbAnalisaSalva
+	mov		DtAtualStringC,0
 	jmp		DbAnalisaIgnora
 
 DbAnalisaEhNegativo:
 	mov		DtAtualEhNeg,1
-
 	jmp		DbAnalisaIgnora
 
 DbAnalisaConcatena:
-; @todo concatenar numero atual ao ultimo valor lido
 	mov		di, offset DtAtualString
-	mov 		di, dx
-	;mov 		DtAtualString+bh, dx
-	inc		bh ; Contador do caracter atual na string
+	add 		di,DtAtualStringC
+	mov		[di],dl
+	inc		DtAtualStringC
 
 DbAnalisaIgnora:
 	ret
@@ -528,6 +542,9 @@ DbAnalisa	endp
 ;
 ;--------------------------------------------------------------------
 DbAnalisaSalva	proc	near
+	;writechar '>'
+	;writenumber DtAtualColuna
+	;writechar '<'
 
 	cmp	DtAtualLinha,0
 	je	DbAnalisaSalvaLinha0
@@ -535,30 +552,40 @@ DbAnalisaSalva	proc	near
 	je	DbAnalisaSalvaLinha1
 	jmp	DbAnalisaSalvaLinha2p
 
+; Primeira linha: sumário
+;----------------------
 DbAnalisaSalvaLinha0:
 
 	cmp	DtAtualColuna,1
 	je	DbAnalisaSalvaLinha01
+
+	; Número total de engenheiros
 	mov	ax,DtAtualInt
-	mov	DtNEng,ax          ; Copia ultimo numero calculado
+	mov	DtNEng,ax
 	jmp	DbAnalisaSalvaFim
 
 DbAnalisaSalvaLinha01:
 
-	mov	byte ptr DtAtualChar,dl
-	lea	bx, DtAtualChar
-	call	DbStrToVal
-
+	; Número total de cidades
 	mov	ax,DtAtualInt
-	mov	DtNCidades,ax      ; Copia ultimo numero calculado
+	mov	DtNCidades,ax
+	;writechar '>'
+	;writenumber DtNCidades
+	;writechar '<'
 	jmp	DbAnalisaSalvaFim
+
+; Segunda linha: lucro de cidades
+;----------------------
 DbAnalisaSalvaLinha1:
 
 	jmp	DbAnalisaSalvaFim
+
+; Terceira linha adiante: visitas de engenheiros a cidades
+;----------------------
 DbAnalisaSalvaLinha2p:
+	jmp	DbAnalisaSalvaFim
 
 DbAnalisaSalvaFim:
-
 
 	ret
 DbAnalisaSalva	endp
@@ -582,7 +609,7 @@ DbStrToVal	proc	near
 	neg	ax
 
 DbStrToValFim:
-	mov	DtAtualFim,0             ; Reseta flag
+
 	mov	DtAtualEhNeg,0           ; Reseta flag
 	mov	DtAtualInt,ax
 	ret
@@ -611,7 +638,7 @@ TelaResumoGeral:
 	lea		bx,DadosResumo1
 	call	printf_s
 
-	mov		ax,DtNEng
+	mov		ax,DtNCidades
 	lea		bx,String
 	call	sprintf_w
 	lea		bx,String
@@ -620,7 +647,7 @@ TelaResumoGeral:
 	lea		bx,DadosResumo2
 	call	printf_s
 
-	mov		ax,DtNCidades
+	mov		ax,DtNEng
 	lea		bx,String
 	call	sprintf_w
 	lea		bx,String
@@ -753,7 +780,7 @@ Continua2:
 Continua3:
 	;		printf("%c", FileBuffer[0]);	// Coloca um caractere na tela
 	;mov		ah,2
-	;mov		dl,FileBuffer
+	mov		dl,FileBuffer
 	;int		21h
 
 	call		DbAnalisa ; Chama DbAnalisa caracter por caracter
