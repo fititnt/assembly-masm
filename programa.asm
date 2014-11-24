@@ -52,10 +52,14 @@ Ajuda		db		CR,LF,">> Caracteres de comandos:",CR,LF
 		db		"   [e] Apresenta o relatorio do engenheiro",CR,LF
 		db		"   [f] Encerra programa",CR,LF
 		db		"   [?] lista comandos validos",0
-;RelatorioGeral	db		"@todo relatorio geral",CR,LF,0
-RelatorioGeral	db		256 dup (?)
+;RelatorioGeral	db		CR,LF,"  @todo relatorio geral",CR,LF,0
+;RelatorioGeral	db		256 dup (?)
+RelatorioGeral	db		CR,LF,">> Relatorio Geral"
+		db		CR,LF,"    Engenheiro Visitas       Lucro       Prejuizo",CR,LF,0
+RelatorioGeral2 db		"       ",0
+RelatorioGeral3 db		CR,LF,0
 RelatorioEngN	db		CR,LF,"Engenheiro:",0
-RelatorioEng	db		CR,LF,"@todo relatorio engenheiro",0
+RelatorioEng	db		CR,LF,"  @todo relatorio engenheiro",0
 RelatorioErro	db		CR,LF,"Numero de engenheiro invalido",0
 EncerramentoMsg	db		CR,LF,"Programa encerrado",0
 
@@ -64,15 +68,17 @@ DtAtualEngSel	dw		0      ; Engenheiro atualmente selecionado
 DtAtualEhNeg	dw		0      ; Se o ultimo valor é negativo
 DtAtualString	db		7 dup (?) ; Valor concatenado da string atual
 DtAtualStringC	dw		0         ; Numero de caracteres na string atual
-DtAtualChar	db		" ",0
+;DtAtualChar	db		" ",0
 DtAtualLinha	dw		0      ; Numero da linha no banco de dados
 DtAtualColuna	dw		0      ; Numero do dado da linha atual
 ;DtAtualFim	dw		0      ; Flag 0 ou 1 para saber se ultima string terminou
 DtNCidades	dw		0      ; Numero de cidades atendidas
 DtNEng		dw		0      ; Numero de engenheiros
 DtCidades	dw		999 dup (0)  ; Lucros de cada cidade
-DtEngPtr	dw		999 dup (0)  ; Lista de ponteiros para visitas de engs
-DtEngVisitas	dw		8096 dup (0) ; Local para conter todas as visitas de engs 
+DtEngLucros	dw		999 dup (0)  ; Lista de lucros/prejuizos totais por engenheiro
+DtEngVisitasPtr	dw		999 dup (0)  ; Lista de ponteiros para visitas de engs
+DtEngVisitas	dw		8096 dup (0) ; Local para conter todas as visitas de engs
+DtEngVisitasNxt	dw		0      ; Ponteiro para o proximo end de DtEngVisitas
 
 	; Declaração do segmento de código
 	.code
@@ -589,14 +595,15 @@ DbAnalisaSalvaLinha01:
 DbAnalisaSalvaLinha1:
 
 	; Lucro de visita a cidade de indice 'DtAtualColuna'
-	mov	dx, offset DtCidades
-	add	dx,DtAtualColuna
+	;mov	dx, offset DtCidades
+	lea	bx,DtCidades
+	add	bx,DtAtualColuna
 	mov	ax,DtAtualInt
 
 	; @todo revisar para ver se está realmente salvando em memoria
-	mov	dx,ax ; Move valor atual para memoria DtCidades+DtAtualColuna
+	mov	[bx],ax ; Move valor atual para memoria DtCidades+DtAtualColuna
 	;writechar '>'
-	;writenumber [dx]
+	;writenumber [bx]
 	;writenumber DtAtualInt
 	;writechar '<'
 	jmp	DbAnalisaSalvaFim
@@ -604,6 +611,34 @@ DbAnalisaSalvaLinha1:
 ; Terceira linha adiante: visitas de engenheiros a cidades
 ;----------------------
 DbAnalisaSalvaLinha2p:
+
+	; Caso não seja primeira coluna, passar adiante (n requer setar DtEngVisitasNxt)
+	cmp	DtAtualColuna,0
+	jne	DbAnalisaSalvaLinha2p1p
+	; Se DtEngVisitasNxt ja foi iniciado, passar adiante
+	cmp	DtEngVisitasNxt,0
+	jne	DbAnalisaSalvaLinha2p0
+
+	lea	bx,DtEngVisitas
+	mov	DtEngVisitasNxt,bx
+
+DbAnalisaSalvaLinha2p0: ;DtEngVisitasNxt ja esta iniciado, so definir DtEngVisitasPtr
+
+	lea	bx,DtEngVisitasPtr
+	add	bx,DtAtualLinha
+	sub	bx,2    ; As duas primeiras linhas não são visitas, logo remover
+	mov	ax,DtEngVisitasNxt
+	mov	[bx],ax
+	inc	DtEngVisitasNxt
+	jmp	DbAnalisaSalvaFim
+
+DbAnalisaSalvaLinha2p1p: ; Terceira linha ou maior, coluna de valores
+
+	lea	bx,DtEngVisitasNxt
+	mov	ax,DtAtualInt
+	mov	[bx],ax
+
+	inc	DtEngVisitasNxt
 	jmp	DbAnalisaSalvaFim
 
 DbAnalisaSalvaFim:
@@ -651,6 +686,7 @@ TelaArquivoDados:
 	; TELA: Solicitação de arquivo de dados
 	;lea		bx,DadosArquivo
 	;call	printf_s
+	mov	DtEngVisitasNxt,0 ; Necessario resetar
 	jmp		SubrotinaLeArquivo
 	call	gets
 
@@ -689,15 +725,17 @@ TelaAjuda:
 
 TelaResumoGeralSobDemanda:
 	; TELA: Resumo geral dos arquivo de dados (visualização sob demanda)
-	lea		bx,RelatorioGeral
-	call	printf_s
+	;lea		bx,RelatorioGeral
+	;call	printf_s
 	;call	gets
-	call	SubrotinaNavegacao
+	;call	SubrotinaNavegacao
+	call	SubrotinaRelatorioGeral
 
 TelaEngEscolha:
 	; TELA: Engenheiro, solicitação da escolha
 	lea		bx,RelatorioEngN
 	call	printf_s
+	lea		bx,String
 	call	gets                ; String obtida em bx
 	call	atoi                ; Converte string de bx para inteiro em ax
 	mov	DtAtualEngSel,ax
@@ -724,7 +762,8 @@ TelaEncerramento:
 	; TELA: Encerramento do programa
 	lea		bx,EncerramentoMsg
 	call	printf_s
-	;call	gets
+	lea	bx,Cursor
+	call	printf_s
 	jmp		Encerramento
 
 SubrotinaNavegacao:
@@ -747,6 +786,14 @@ SubrotinaNavegacao:
 	lea	bx,Cursor
 	call	printf_s
 	jmp	SubrotinaNavegacao
+
+
+SubrotinaRelatorioGeral:
+	; TELA: Resumo geral dos arquivo de dados (visualização sob demanda)
+	lea		bx,RelatorioGeral
+	call	printf_s
+	;call	gets
+	call	SubrotinaNavegacao
 
 SubrotinaLeArquivo:
 ;====================================================================
