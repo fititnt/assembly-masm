@@ -56,7 +56,7 @@ Ajuda		db		CR,LF,">> Caracteres de comandos:",CR,LF
 ;RelatorioGeral	db		256 dup (?)
 RelatorioGeral	db		CR,LF,">> Relatorio Geral"
 		db		CR,LF,"    Engenheiro Visitas       Lucro       Prejuizo",CR,LF,0
-RelatorioGeral2 db		"       ",0
+RelatorioGeral2 db		"         ",0
 RelatorioGeral3 db		CR,LF,0
 RelatorioEngN	db		CR,LF,"Engenheiro:",0
 RelatorioEng	db		CR,LF,"  @todo relatorio engenheiro",0
@@ -79,6 +79,7 @@ DtEngLucros	dw		999 dup (0)  ; Lista de lucros/prejuizos totais por engenheiro
 DtEngVisitasPtr	dw		999 dup (0)  ; Lista de ponteiros para visitas de engs
 DtEngVisitas	dw		8096 dup (0) ; Local para conter todas as visitas de engs
 DtEngVisitasNxt	dw		0      ; Ponteiro para o proximo end de DtEngVisitas
+DtLoop		dw		0      ; Contador de loop generico
 
 	; Declaração do segmento de código
 	.code
@@ -792,7 +793,51 @@ SubrotinaRelatorioGeral:
 	; TELA: Resumo geral dos arquivo de dados (visualização sob demanda)
 	lea		bx,RelatorioGeral
 	call	printf_s
-	;call	gets
+
+	; @todo criar outra rotina para realizar os calculos propriamente ditos
+	mov	cx,0
+SubrotinaRelatorioGeralLinha: ; Label base para cada item
+
+	; Espacos
+	lea	bx,RelatorioGeral2
+	call	printf_s
+
+	; Eng nº
+	mov	ax,cx
+	lea	bx,String
+	push	cx
+	call	sprintf_w
+	pop	cx
+	lea	bx,String
+	call	printf_s
+
+	; Espaços
+	lea	bx,RelatorioGeral2
+	call	printf_s
+
+	; Nº visitas
+	mov	bx,DtEngVisitasPtr
+	add	bx,cx
+	mov	ax,[bx]
+	lea	bx,String
+	push	cx
+	call	sprintf_w
+	pop	cx
+	lea	bx,String
+	call	printf_s
+
+	; Fim de linha
+	lea	bx,RelatorioGeral3
+	call	printf_s
+
+	cmp	cx,DtNEng
+	je	SubrotinaRelatorioGeralTotal
+	inc	cx
+
+	jmp	SubrotinaRelatorioGeralLinha
+
+SubrotinaRelatorioGeralTotal: ; Fim da tabela (exibe totais)
+SubrotinaRelatorioGeralFim:
 	call	SubrotinaNavegacao
 
 SubrotinaLeArquivo:
