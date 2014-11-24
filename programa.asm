@@ -59,17 +59,19 @@ RelatorioEng	db		CR,LF,"@todo relatorio engenheiro",0
 RelatorioErro	db		CR,LF,"Numero de engenheiro invalido",0
 EncerramentoMsg	db		CR,LF,"Programa encerrado",0
 
-DtAtualInt	dw		7      ; Valor como inteiro do ultimo numero lido
+DtAtualInt	dw		0      ; Valor como inteiro do ultimo numero lido
 DtAtualEhNeg	dw		0      ; Se o ultimo valor é negativo
-;DtAtualString	db		"    ",0 ; Valor como string do ultimo numero lido
 DtAtualString	db		7 dup (?) ; Valor concatenado da string atual
 DtAtualStringC	dw		0         ; Numero de caracteres na string atual
 DtAtualChar	db		" ",0
 DtAtualLinha	dw		0      ; Numero da linha no banco de dados
 DtAtualColuna	dw		0      ; Numero do dado da linha atual
 ;DtAtualFim	dw		0      ; Flag 0 ou 1 para saber se ultima string terminou
-DtNCidades	dw		77      ; Numero de cidades atendidas
-DtNEng		dw		77      ; Numero de engenheiros
+DtNCidades	dw		0      ; Numero de cidades atendidas
+DtNEng		dw		0      ; Numero de engenheiros
+DtCidades	dw		999 dup (0)  ; Lucros de cada cidade
+DtEngPtr	dw		999 dup (0)  ; Lista de ponteiros para visitas de engs
+DtEngVisitas	dw		8096 dup (0) ; Local para conter todas as visitas de engs 
 
 	; Declaração do segmento de código
 	.code
@@ -463,11 +465,11 @@ DbAnalisa	proc	near
 
 	cmp		dl,2ch        ; if (dl = ,)
 	je		DbAnalisaFimString
-	cmp		dl,10h        ; if (dl = LF)
+	cmp		dl,LF        ; if (dl = LF)
 	je		DbAnalisaFimLinha
 	cmp		dl,2dh        ; if (dl = -)
 	je		DbAnalisaEhNegativo
-	cmp		dl,13h        ; if (dl = CR || dl = " ")
+	cmp		dl,CR        ; if (dl = CR || dl = " ")
 	je		DbAnalisaIgnora
 	cmp		dl,20h
 	je		DbAnalisaIgnora
@@ -475,21 +477,22 @@ DbAnalisa	proc	near
 	jmp		DbAnalisaConcatena ; Se chegou ate aqui, é numero
 
 DbAnalisaFimLinha:
-	inc		DtAtualLinha
-	; @todo replicar coração da rotina DbAnalisaFimString aqui
+	;call DDebug
 
 	; Fecha string com \0
 	mov		di, offset DtAtualString
 	add 		di,DtAtualStringC
 	mov		[di],0
 
+	lea		bx,DtAtualString
 	call 	DbStrToVal            ; DtAtualString & DtAtualEhNeg -> DtAtualInt
 	call	DbAnalisaSalva
 
 	mov		DtAtualStringC,0
+	mov		DtAtualColuna,0
+	inc		DtAtualLinha
 	jmp	DbAnalisaIgnora
 DbAnalisaFimString:
-	inc		DtAtualColuna
 
 	; Fecha string com \0
 	mov		di, offset DtAtualString
@@ -501,14 +504,16 @@ DbAnalisaFimString:
 	;call printf_s
 	;writechar '<'
 
+	lea		bx,DtAtualString
 	call 	DbStrToVal            ; DtAtualString & DtAtualEhNeg -> DtAtualInt
 
-	;writechar '>'
-	;writenumber DtAtualInt
-	;writechar '<'
+	; writechar '>'
+	; writenumber DtAtualInt
+	; writechar '<'
 
 	call	DbAnalisaSalva
 	mov		DtAtualStringC,0
+	inc		DtAtualColuna
 	jmp		DbAnalisaIgnora
 
 DbAnalisaEhNegativo:
@@ -531,20 +536,24 @@ DbAnalisa	endp
 ; 
 ; @see  atoi             Usada para converter de string para numerico
 ;
-;Entra: DtAtualString  -> String concatenada
+;Entra: DtAtualInt     -> valor numérico do dado atual
+;       DtAtualString  -> String concatenada
 ;       DtAtualLinha   -> Linha do arquivo de banco de dados atual
 ;       DtAtualColuna  -> Coluna do valor na linha atual
 ;       DtAtualEhNeg   -> 1 se numero negavo, 0 se positivo
-;Sai:   DtAtualInt     -> valor numérico do dado atual
-;       DtNCidades     -> Número de cidades
+;Sai:   DtNCidades     -> Número de cidades
 ;       DtNEng         -> Número de engenheiros
 ;       ...
 ;
 ;--------------------------------------------------------------------
 DbAnalisaSalva	proc	near
-	;writechar '>'
-	;writenumber DtAtualColuna
-	;writechar '<'
+	; writechar '>'
+	; writenumber DtAtualLinha
+	; writechar ' '
+	; writenumber DtAtualColuna
+	; writechar ':'
+	; writenumber DtAtualInt
+	; writechar '<'
 
 	cmp	DtAtualLinha,0
 	je	DbAnalisaSalvaLinha0
@@ -578,6 +587,17 @@ DbAnalisaSalvaLinha01:
 ;----------------------
 DbAnalisaSalvaLinha1:
 
+	; Lucro de visita a cidade de indice 'DtAtualColuna'
+	mov	dx, offset DtCidades
+	add	dx,DtAtualColuna
+	mov	ax,DtAtualInt
+
+	; @todo revisar para ver se está realmente salvando em memoria
+	mov	dx,ax ; Move valor atual para memoria DtCidades+DtAtualColuna
+	;writechar '>'
+	;writenumber [dx]
+	;writenumber DtAtualInt
+	;writechar '<'
 	jmp	DbAnalisaSalvaFim
 
 ; Terceira linha adiante: visitas de engenheiros a cidades

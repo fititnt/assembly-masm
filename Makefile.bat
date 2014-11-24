@@ -5,4 +5,3 @@ masm /Zi programa.asm,programa.obj,programa.lst,programa.crf;
 rem Script para LIGAR um arquivo .OBJ
 link /CO programa.obj,,,,;
 
-rem programa.exe
