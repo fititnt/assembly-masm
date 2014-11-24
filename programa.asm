@@ -41,6 +41,8 @@ LF		equ		10
 
 Autor		db		"Emerson Rocha Luiz - 143503",0
 Cursor		db		CR,LF,"Comando>",0
+Crlf		db		CR,LF,0
+Virgulas	db		",00",0
 ;DadosArquivo	db		CR,LF,"Arquivo de dados:",0
 ;DadosResumo	db		"@todo resumo de dados",CR,LF,0
 DadosResumo1	db		CR,LF,"   Arquivo de dados:",CR,LF
@@ -59,7 +61,11 @@ RelatorioGeral	db		CR,LF,">> Relatorio Geral"
 RelatorioGeral2 db		"         ",0
 RelatorioGeral3 db		CR,LF,0
 RelatorioEngN	db		CR,LF,"Engenheiro:",0
-RelatorioEng	db		CR,LF,"  @todo relatorio engenheiro",0
+;RelatorioEng	db		CR,LF,"  @todo relatorio engenheiro",0
+RelatorioEng1	db		CR,LF,"    Relatorio do Engenheiro ",0
+RelatorioEng2	db		CR,LF,"    Numero de visitas: ",0
+RelatorioEng3	db		CR,LF,"    Cidade       Lucro     Prejuizo",CR,LF,0
+RelatorioEng4	db		CR,LF,"      TOTAL        ",CR,LF,0
 RelatorioErro	db		CR,LF,"Numero de engenheiro invalido",0
 EncerramentoMsg	db		CR,LF,"Programa encerrado",0
 
@@ -746,9 +752,41 @@ TelaEngEscolha:
 
 TelaEngRelatorio:
 	; TELA: Engenheiro, exibição do relatório específico
-	lea		bx,RelatorioEng
+
+	; "Relatorio do Engenheiro N \0"
+	lea	bx,RelatorioEng1
 	call	printf_s
-	;call	gets
+	mov	ax,DtAtualEngSel
+	lea	bx,String
+	call	sprintf_w
+	lea	bx,String
+	call	printf_s
+
+	; "Numero de visitas:  N \0"
+	lea	bx,RelatorioEng2
+	call	printf_s
+	;@todo N
+	lea	bx,DtEngVisitasPtr
+	add	bx,g
+	mov	ax,[bx]
+	lea	bx,String
+	call	sprintf_w
+	lea	bx,String
+	call	printf_s
+
+	;"Cidade       Lucro     Prejuizo"
+	lea	bx,RelatorioEng3
+	call	printf_s
+TelaEngRelatorioItens:
+	; Item por item
+
+TelaEngRelatorioFim:
+	; "TOTAL:  NNN,NN    NNN,NN\0"
+	lea	bx,RelatorioEng4
+	call	printf_s
+	;@todo NNN,NN    NNN,NN
+	lea	bx,Crlf
+	call	printf_s
 	call	SubrotinaNavegacao
 
 TelaEngErro:
