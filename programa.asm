@@ -60,6 +60,7 @@ RelatorioErro	db		CR,LF,"Numero de engenheiro invalido",0
 EncerramentoMsg	db		CR,LF,"Programa encerrado",0
 
 DtAtualInt	dw		0      ; Valor como inteiro do ultimo numero lido
+DtAtualEngSel	dw		0      ; Engenheiro atualmente selecionado
 DtAtualEhNeg	dw		0      ; Se o ultimo valor é negativo
 DtAtualString	db		7 dup (?) ; Valor concatenado da string atual
 DtAtualStringC	dw		0         ; Numero de caracteres na string atual
@@ -697,8 +698,12 @@ TelaEngEscolha:
 	; TELA: Engenheiro, solicitação da escolha
 	lea		bx,RelatorioEngN
 	call	printf_s
-	;call	gets
-	call	SubrotinaNavegacao
+	call	gets                ; String obtida em bx
+	call	atoi                ; Converte string de bx para inteiro em ax
+	mov	DtAtualEngSel,ax
+	cmp	ax,DtNEng
+	jg	TelaEngErro         ; Selecionado Eng superior a qtd de engs
+	;call	SubrotinaNavegacao
 
 TelaEngRelatorio:
 	; TELA: Engenheiro, exibição do relatório específico
@@ -711,7 +716,9 @@ TelaEngErro:
 	; TELA: Engenheiro, erro de escolha de engenheiro inválido
 	lea		bx,RelatorioErro
 	call	printf_s
-	call	gets
+	;call	gets
+	;call TelaEngEscolha
+	call	SubrotinaNavegacao
 
 TelaEncerramento:
 	; TELA: Encerramento do programa
