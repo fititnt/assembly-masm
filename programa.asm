@@ -25,7 +25,7 @@ FileName	db		256 dup (?)		; Nome do arquivo a ser lido
 FileHandle	dw		0				; Handler do arquivo
 FileNameBuffer	db		150 dup (?)
 
-MsgPedeArquivo	db		"Nome do arquivo: ", 0
+MsgPedeArquivo	db		CR,LF,">> Forneca o nome do arquivo de dados: ", 0
 MsgErroOpenFile	db		"Erro na abertura do arquivo.",CR,LF,0
 MsgErroReadFile	db		"Erro na leitura do arquivo.",CR,LF,0
 
@@ -39,19 +39,19 @@ DDebugValMacro	db		MAXSTRING dup (?)
 CR		equ		13
 LF		equ		10
 
-Autor		db		"Emerson Rocha Luiz - 143503",CR,LF,0
+Autor		db		"Emerson Rocha Luiz - 143503",0
 Cursor		db		CR,LF,"Comando>",0
-DadosArquivo	db		CR,LF,"Arquivo de dados:",0
+;DadosArquivo	db		CR,LF,"Arquivo de dados:",0
 ;DadosResumo	db		"@todo resumo de dados",CR,LF,0
-DadosResumo1	db		CR,LF,"  Arquivo de dados:",CR,LF
+DadosResumo1	db		CR,LF,"   Arquivo de dados:",CR,LF
 		db		"      Numero de cidades...... ",0
 DadosResumo2	db		CR,LF,"      Numero de engenheiros.. ",0
-Ajuda		db		CR,LF,"Caracteres de comandos:",CR,LF
-		db		" [a] Solicita novo arquivo de dados",CR,LF
-		db		" [g] Apresenta o relatorio geral",CR,LF
-		db		" [e] Apresenta o relatorio do engenheiro",CR,LF
-		db		" [f] Encerra programa",CR,LF
-		db		" [?] lista comandos validos",CR,LF,0
+Ajuda		db		CR,LF,">> Caracteres de comandos:",CR,LF
+		db		"   [a] Solicita novo arquivo de dados",CR,LF
+		db		"   [g] Apresenta o relatorio geral",CR,LF
+		db		"   [e] Apresenta o relatorio do engenheiro",CR,LF
+		db		"   [f] Encerra programa",CR,LF
+		db		"   [?] lista comandos validos",0
 ;RelatorioGeral	db		"@todo relatorio geral",CR,LF,0
 RelatorioGeral	db		256 dup (?)
 RelatorioEngN	db		CR,LF,"Engenheiro:",0
@@ -675,31 +675,37 @@ TelaResumoGeral:
 
 	;call	DDebubPilha
 
-	call	gets
+	;call	gets
 
 TelaAjuda:
 	; TELA: Tela de ajuda
 	lea		bx,Ajuda
 	call	printf_s
-	call	gets
+	lea		bx,Cursor
+	call	printf_s
+	;call	gets
+	call	SubrotinaNavegacao
 
 TelaResumoGeralSobDemanda:
 	; TELA: Resumo geral dos arquivo de dados (visualização sob demanda)
 	lea		bx,RelatorioGeral
 	call	printf_s
-	call	gets
+	;call	gets
+	call	SubrotinaNavegacao
 
 TelaEngEscolha:
 	; TELA: Engenheiro, solicitação da escolha
 	lea		bx,RelatorioEngN
 	call	printf_s
-	call	gets
+	;call	gets
+	call	SubrotinaNavegacao
 
 TelaEngRelatorio:
 	; TELA: Engenheiro, exibição do relatório específico
 	lea		bx,RelatorioEng
 	call	printf_s
-	call	gets
+	;call	gets
+	call	SubrotinaNavegacao
 
 TelaEngErro:
 	; TELA: Engenheiro, erro de escolha de engenheiro inválido
@@ -711,8 +717,29 @@ TelaEncerramento:
 	; TELA: Encerramento do programa
 	lea		bx,EncerramentoMsg
 	call	printf_s
-	call	gets
+	;call	gets
 	jmp		Encerramento
+
+SubrotinaNavegacao:
+	;call	gets
+	;mov	bx, offset String
+	mov	ah,1	; Prepara para obter tecla digitada em al
+	int	21h
+	cmp	al,'a'
+	je	TelaArquivoDados
+	cmp	al,'g'
+	je	TelaResumoGeralSobDemanda
+	cmp	al,'e'
+	je	TelaEngEscolha
+	cmp	al,'a'
+	je	TelaArquivoDados
+	cmp	al,'f'
+	je	TelaEncerramento
+	cmp	al,'?'
+	je	TelaAjuda
+	lea	bx,Cursor
+	call	printf_s
+	jmp	SubrotinaNavegacao
 
 SubrotinaLeArquivo:
 ;====================================================================
