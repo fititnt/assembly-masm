@@ -42,6 +42,10 @@ LF		equ		10
 Autor		db		"Emerson Rocha Luiz - 143503",0
 Cursor		db		CR,LF,"Comando>",0
 Crlf		db		CR,LF,0
+Space1		db		" ",0
+Space2		db		"  ",0
+Space3		db		"  ",0
+Space12		db		"            ",0
 Virgulas	db		",00",0
 ;DadosArquivo	db		CR,LF,"Arquivo de dados:",0
 ;DadosResumo	db		"@todo resumo de dados",CR,LF,0
@@ -66,7 +70,8 @@ RelatorioEngN	db		CR,LF,"Engenheiro:",0
 RelatorioEng1	db		CR,LF,"    Relatorio do Engenheiro ",0
 RelatorioEng2	db		CR,LF,"    Numero de visitas: ",0
 RelatorioEng3	db		CR,LF,"    Cidade       Lucro     Prejuizo",CR,LF,0
-RelatorioEng4	db		CR,LF,"      TOTAL        ",CR,LF,0
+RelatorioEng4	db		"      TOTAL        ",CR,LF,0
+RelatorioEng5	db		"        ",0
 RelatorioErro	db		CR,LF,"Numero de engenheiro invalido",0
 EncerramentoMsg	db		CR,LF,"Programa encerrado",0
 
@@ -91,6 +96,7 @@ DtEngVisitasT	dw		999 dup (0)  ; Apenas o total de visitas de cada engenheiro
 DtEngVisitasNxt	dw		0      ; Ponteiro para o proximo end de DtEngVisitas
 DtLoop		dw		0      ; Contador de loop generico
 Xpto		dw		0
+Temp		dw		0      ; Variavel temporaria generica
 DtEngVisitas	dw		8096 dup (0) ; Local para conter todas as visitas de engs
 
 	; Declaração do segmento de código
@@ -749,6 +755,54 @@ DbStrToValFim:
 	ret
 DbStrToVal	endp
 
+;--------------------------------------------------------------------
+;Função para receber um numeral e imprimir com padding na tela
+;
+;Entra: DX -> Numero inteiro
+;
+;--------------------------------------------------------------------
+DbPrintN	proc	near
+	; call	sprintf_w
+	; lea	bx,String
+	; call	printf_s
+	;lea	bx,Virgulas
+	;call	printf_s
+	;writechar '>'
+	;writenumber ax
+
+	mov	Temp,ax
+	cmp	ax,0
+	jne	DbPrintNNegativo
+
+	lea	bx,Space3
+	call	printf_s
+	lea	bx,String
+	mov	ax,Temp
+	call	sprintf_w
+	lea	bx,String
+	call	printf_s
+	lea	bx,Virgulas
+	call	printf_s
+	jmp	DbPrintNFim
+
+DbPrintNNegativo:
+	mov	ax,Temp
+	neg	ax
+	mov	Temp,ax
+	lea	bx,Space12
+	call	printf_s
+	lea	bx,String
+	mov	ax,Temp
+	call	sprintf_w
+	lea	bx,String
+	call	printf_s
+	lea	bx,Virgulas
+	call	printf_s
+
+DbPrintNFim:
+	ret
+DbPrintN	endp
+
 	.startup
 
 TelaAutoria:
@@ -874,8 +928,41 @@ TelaEngRelatorio:
 	; writechar '-'
 	; mov bx,DtEngVisitasT
 	; writenumber bx
-TelaEngRelatorioItens:
-	; Item por item
+
+	; contador de visitas
+	lea	bx,DtEngVisitasT
+	mov	dx,DtAtualEngSel
+	shl	dx,1 ; * 2, deslocamento dw
+	add	bx,dx
+	mov	ax,[bx]
+	mov	cx,ax
+	;dec	cx
+
+; Item por item
+     TelaEngRelatorioItens:
+
+	; Espacos
+	lea	bx,RelatorioEng5
+	call	printf_s
+
+	; Nº Cidade
+	mov	bx,DtEngVisitasPtr
+	mov	dx,cx
+	shl	dx,1             ; pos*2, DW usa 2 bytes de deslocamento
+	add	bx,dx
+	mov	ax,[bx]
+	lea	bx,String
+	call	sprintf_w
+	lea	bx,String
+	call	printf_s
+
+	; Fim de linha
+	lea	bx,Crlf
+	call	printf_s
+
+	dec	cx
+	cmp	cx,0
+	jge	TelaEngRelatorioItens
 
 TelaEngRelatorioFim:
 	; "TOTAL:  "
@@ -987,10 +1074,11 @@ SubrotinaRelatorioGeral:
 	shl	dx,1             ; pos*2, DW usa 2 bytes de deslocamento
 	add	bx,dx
 	mov	ax,[bx]
-	lea	bx,String
-	call	sprintf_w
-	lea	bx,String
-	call	printf_s
+	call	DbPrintN
+	;lea	bx,String
+	;call	sprintf_w
+	;lea	bx,String
+	;call	printf_s
 
 	; Fim de linha
 	lea	bx,RelatorioGeral3
@@ -1022,10 +1110,11 @@ SubrotinaRelatorioGeral:
 
 	; NNN,NN    NNN,NN (lucro/prejuizo)
 	mov	ax,DtNLucro
-	lea	bx,String
-	call	sprintf_w
-	lea	bx,String
-	call	printf_s
+	call	DbPrintN
+	;lea	bx,String
+	;call	sprintf_w
+	;lea	bx,String
+	;call	printf_s
 
 ; Fim da subrotina
     SubrotinaRelatorioGeralFim:
