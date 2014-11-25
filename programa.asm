@@ -588,8 +588,8 @@ DbAnalisaSalva	proc	near
 	je	DbAnalisaSalvaLinha1
 	jmp	DbAnalisaSalvaLinha2p
 
-; Primeira linha: sumário
-;----------------------
+; Primeira linha: sumário (DtNEng e DtNCidades)
+;----------------------------------------------
 DbAnalisaSalvaLinha0:
 
 	cmp	DtAtualColuna,1
@@ -605,41 +605,31 @@ DbAnalisaSalvaLinha01:
 	; Número total de cidades
 	mov	ax,DtAtualInt
 	mov	DtNCidades,ax
-	;writechar '>'
-	;writenumber DtNCidades
-	;writechar '<'
 	jmp	DbAnalisaSalvaFim
 
-; Segunda linha: lucro de cidades
-;----------------------
+; Segunda linha: lucro de cidades (DtCidades)
+;----------------------------------------------
 DbAnalisaSalvaLinha1:
 
 	; Lucro de visita a cidade de indice 'DtAtualColuna'
-	;mov	dx, offset DtCidades
-	lea	bx,DtCidades
-	add	bx,DtAtualColuna
-	mov	ax,DtAtualInt
 
-	; @todo revisar para ver se está realmente salvando em memoria
-	mov	[bx],ax ; Move valor atual para memoria DtCidades+DtAtualColuna
-	; writechar '>'
-	; writenumber [bx]
-	; writechar ' '
-	; writenumber [bx]
-	; writechar ' '
-	; writenumber DtCidades
-	; writechar ' '
-	; writenumber DtCidades+1
-	; writechar '<'
+	lea	bx,DtCidades
+	mov	dx,DtAtualColuna
+	shl	dx,1               ; Col*2, deslocamento conforme coluna
+	add	bx,dx
+	mov	ax,DtAtualInt
+	mov	[bx],ax            ; Move valor atual para memoria DtCidades+DtAtualColuna
+
 	jmp	DbAnalisaSalvaFim
 
 ; Terceira linha adiante: visitas de engenheiros a cidades
-;----------------------
+;----------------------------------------------
 DbAnalisaSalvaLinha2p:
 
 	; Caso não seja primeira coluna, passar adiante (n requer setar DtEngVisitasNxt)
 	cmp	DtAtualColuna,0
 	jne	DbAnalisaSalvaLinha2p1p
+
 	; Se DtEngVisitasNxt ja foi iniciado, passar adiante
 	cmp	DtEngVisitasNxt,0
 	jne	DbAnalisaSalvaLinha2p0
@@ -647,24 +637,10 @@ DbAnalisaSalvaLinha2p:
 	lea	bx,DtEngVisitas
 	mov	DtEngVisitasNxt,bx ; Inicializa DtEngVisitasNxt primeira vez
 
-DbAnalisaSalvaLinha2p0: ;DtEngVisitasNxt ja esta iniciado, so definir DtEngVisitasPtr
+;DtEngVisitasNxt ja esta iniciado, é primeira coluna, só definir DtEngVisitasT e DtEngVisitasPtr
+    DbAnalisaSalvaLinha2p0:
 
-	lea	bx,DtEngVisitasPtr
-	add	bx,DtAtualLinha
-	sub	bx,2    ; As duas primeiras linhas não são visitas, logo remover
-	mov	ax,DtEngVisitasNxt
-	mov	[bx],ax  ; Ponteiro para lista de valores
-	mov	bx,DtEngVisitasNxt
-	mov	ax,DtAtualInt
-	mov	[bx],ax  ; Salva quantidade de valores no local apontado
-	;mov	Xpto,bx ; @debug
-	;writechar '>'
-	;writenumber [bx]
-	;writenumber byte ptr[DtEngVisitasPtr]
-	;writenumber DtEngVisitasPtr
-	;writenumber DtEngVisitasNxt
-	;writechar '<'
-
+	; Popula Total de visitas em DtEngVisitasT
 	lea	bx,DtEngVisitasT
 	mov	dx,DtAtualLinha
 	shl	dx,1 ; L*2
@@ -674,16 +650,36 @@ DbAnalisaSalvaLinha2p0: ;DtEngVisitasNxt ja esta iniciado, so definir DtEngVisit
 	mov	[bx],ax
 	mov	Xpto,bx ; @debug
 
-	inc	DtEngVisitasNxt
+	; Popula ponteiro DtEngVisitasPtr para inicio das viagens de DtEngVisitas (usa DtEngVisitasNxt)
+	lea	ax,DtEngVisitasNxt
+	mov	dx,DtAtualLinha
+	shl	dx,1 ; L*2
+	add	ax,dx
+	sub	ax,2 ; L - 2(linhas) + 1 (proxima posição), AX contém pos inicial das viagens
+	lea	bx,DtEngVisitasPtr
+	mov	dx,DtAtualLinha
+	shl	dx,1 ; L*2
+	add	bx,dx
+	sub	bx,4 ; L - 2 (linhas)
+	mov	[bx],ax
+
+	; mov	ax,DtEngVisitasNxt
+	; mov	[bx],ax  ; Ponteiro para lista de valores
+	; mov	bx,DtEngVisitasNxt
+	; mov	ax,DtAtualInt
+	; mov	[bx],ax  ; Salva quantidade de valores no local apontado
+
+	;inc	DtEngVisitasNxt
 	jmp	DbAnalisaSalvaFim
 
-DbAnalisaSalvaLinha2p1p: ; Terceira linha ou maior, coluna de valores
+; Terceira linha ou maior, coluna apenas com valores
+    DbAnalisaSalvaLinha2p1p:
 
 	mov	bx,DtEngVisitasNxt
 	mov	ax,DtAtualInt
 	mov	[bx],ax  ; Salva quantidade de valores no local apontado
 
-	inc	DtEngVisitasNxt
+	add	DtEngVisitasNxt,2  ; Preparar para proxima posição de DtEngVisitas
 	jmp	DbAnalisaSalvaFim
 
 DbAnalisaSalvaFim:
