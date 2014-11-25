@@ -627,7 +627,7 @@ DbAnalisaSalvaLinha2p:
 	jne	DbAnalisaSalvaLinha2p0
 
 	lea	bx,DtEngVisitas
-	mov	DtEngVisitasNxt,bx
+	mov	DtEngVisitasNxt,bx ; Inicializa DtEngVisitasNxt primeira vez
 
 DbAnalisaSalvaLinha2p0: ;DtEngVisitasNxt ja esta iniciado, so definir DtEngVisitasPtr
 
@@ -635,21 +635,39 @@ DbAnalisaSalvaLinha2p0: ;DtEngVisitasNxt ja esta iniciado, so definir DtEngVisit
 	add	bx,DtAtualLinha
 	sub	bx,2    ; As duas primeiras linhas não são visitas, logo remover
 	mov	ax,DtEngVisitasNxt
-	mov	[bx],ax
+	mov	[bx],ax  ; Ponteiro para lista de valores
+	mov	bx,DtEngVisitasNxt
+	mov	ax,DtAtualInt
+	mov	[bx],ax  ; Salva quantidade de valores no local apontado
+	;writechar '>'
+	;writenumber [bx]
+	;writenumber DtEngVisitasPtr
+	;writenumber DtEngVisitasNxt
+	;writechar '<'
 	inc	DtEngVisitasNxt
 	jmp	DbAnalisaSalvaFim
 
 DbAnalisaSalvaLinha2p1p: ; Terceira linha ou maior, coluna de valores
 
-	lea	bx,DtEngVisitasNxt
+	mov	bx,DtEngVisitasNxt
 	mov	ax,DtAtualInt
-	mov	[bx],ax
+	mov	[bx],ax  ; Salva quantidade de valores no local apontado
 
 	inc	DtEngVisitasNxt
 	jmp	DbAnalisaSalvaFim
 
 DbAnalisaSalvaFim:
-
+	; writechar '>'
+	; writenumber DtAtualInt
+	; writechar ' '
+	; writenumber DtAtualLinha
+	; writechar ' '
+	; writenumber DtAtualColuna
+	; writechar ' '
+	; writenumber DtEngVisitasNxt
+	; writechar ' '
+	; writenumber DtEngVisitas
+	; writechar '<'
 	ret
 DbAnalisaSalva	endp
 
@@ -767,7 +785,7 @@ TelaEngRelatorio:
 	call	printf_s
 	;@todo N
 	lea	bx,DtEngVisitasPtr
-	add	bx,g
+	add	bx,DtAtualEngSel
 	mov	ax,[bx]
 	lea	bx,String
 	call	sprintf_w
