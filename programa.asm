@@ -60,6 +60,7 @@ RelatorioGeral	db		CR,LF,">> Relatorio Geral"
 		db		CR,LF,"    Engenheiro Visitas       Lucro       Prejuizo",CR,LF,0
 RelatorioGeral2 db		"         ",0
 RelatorioGeral3 db		CR,LF,0
+RelatorioGeral4	db		"      TOTAL       ",0
 RelatorioEngN	db		CR,LF,"Engenheiro:",0
 ;RelatorioEng	db		CR,LF,"  @todo relatorio engenheiro",0
 RelatorioEng1	db		CR,LF,"    Relatorio do Engenheiro ",0
@@ -72,6 +73,7 @@ EncerramentoMsg	db		CR,LF,"Programa encerrado",0
 DtAtualInt	dw		0      ; Valor como inteiro do ultimo numero lido
 DtAtualEngSel	dw		0      ; Engenheiro atualmente selecionado
 DtAtualEhNeg	dw		0      ; Se o ultimo valor é negativo
+DtAtualLucro	dw		0      ; Variavel temporaria para conter lucro de uma viagem
 DtAtualString	db		7 dup (?) ; Valor concatenado da string atual
 DtAtualStringC	dw		0         ; Numero de caracteres na string atual
 ;DtAtualChar	db		" ",0
@@ -80,6 +82,8 @@ DtAtualColuna	dw		0      ; Numero do dado da linha atual
 ;DtAtualFim	dw		0      ; Flag 0 ou 1 para saber se ultima string terminou
 DtNCidades	dw		0      ; Numero de cidades atendidas
 DtNEng		dw		0      ; Numero de engenheiros
+DtNVisitas	dw		0      ; Numero total de visitas
+DtNLucro	dw		0      ; Lucro total de todos os engenheiros e Lucros
 DtCidades	dw		999 dup (0)  ; Lucros de cada cidade
 DtEngLucros	dw		999 dup (0)  ; Lista de lucros/prejuizos totais por engenheiro
 DtEngVisitasPtr	dw		999 dup (0)  ; Lista de ponteiros para visitas de engs
@@ -612,7 +616,6 @@ DbAnalisaSalvaLinha01:
 DbAnalisaSalvaLinha1:
 
 	; Lucro de visita a cidade de indice 'DtAtualColuna'
-
 	lea	bx,DtCidades
 	mov	dx,DtAtualColuna
 	shl	dx,1               ; Col*2, deslocamento conforme coluna
@@ -650,6 +653,13 @@ DbAnalisaSalvaLinha2p:
 	mov	[bx],ax
 	mov	Xpto,bx ; @debug
 
+	; Total de visitas
+	lea	bx,DtNVisitas
+	mov	ax,DtAtualInt
+	add	[bx],ax
+	;writechar '>'
+	;writenumber [bx]
+
 	; Popula ponteiro DtEngVisitasPtr para inicio das viagens de DtEngVisitas (usa DtEngVisitasNxt)
 	lea	ax,DtEngVisitasNxt
 	mov	dx,DtAtualLinha
@@ -672,12 +682,16 @@ DbAnalisaSalvaLinha2p:
 	;inc	DtEngVisitasNxt
 	jmp	DbAnalisaSalvaFim
 
-; Terceira linha ou maior, coluna apenas com valores
+; Terceira linha ou maior, coluna apenas com locais visitados
     DbAnalisaSalvaLinha2p1p:
 
 	mov	bx,DtEngVisitasNxt
 	mov	ax,DtAtualInt
-	mov	[bx],ax  ; Salva quantidade de valores no local apontado
+	mov	[bx],ax  ; Salva local visitado no local apontado
+
+	; @todo implementar DtAtualLucro
+	; @todo implementar DtEngLucros
+	; @todo implementar DtNLucro
 
 	add	DtEngVisitasNxt,2  ; Preparar para proxima posição de DtEngVisitas
 	jmp	DbAnalisaSalvaFim
@@ -879,6 +893,8 @@ TelaEncerramento:
 	call	printf_s
 	jmp		Encerramento
 
+; Subrotina de navegação. Gerencia input do usuário e navegação em telas
+;----------------------------------------------
 SubrotinaNavegacao:
 	;call	gets
 	;mov	bx, offset String
@@ -900,11 +916,12 @@ SubrotinaNavegacao:
 	call	printf_s
 	jmp	SubrotinaNavegacao
 
-
+; Subrotina usada na tela Relatorio Geral
+;----------------------------------------------
 SubrotinaRelatorioGeral:
 	writechar '>'
-	writenumber Xpto
-	mov	bx,Xpto
+	writenumber DtEngVisitasT
+	mov	bx,DtEngVisitasT
 	writechar ' '
 	writenumber [bx]
 
@@ -914,7 +931,9 @@ SubrotinaRelatorioGeral:
 
 	; @todo criar outra rotina para realizar os calculos propriamente ditos
 	mov	cx,0
-SubrotinaRelatorioGeralLinha: ; Label base para cada item
+
+; Loop para gerar linha por linha
+    SubrotinaRelatorioGeralLinha:
 
 	; Espacos
 	lea	bx,RelatorioGeral2
@@ -923,9 +942,7 @@ SubrotinaRelatorioGeralLinha: ; Label base para cada item
 	; Eng nº
 	mov	ax,cx
 	lea	bx,String
-	;push	cx
 	call	sprintf_w
-	;pop	cx
 	lea	bx,String
 	call	printf_s
 
@@ -934,13 +951,13 @@ SubrotinaRelatorioGeralLinha: ; Label base para cada item
 	call	printf_s
 
 	; Nº visitas
-	mov	bx,DtEngVisitasPtr
-	add	bx,cx
+	lea	bx,DtEngVisitasT
+	mov	dx,cx
+	shl	dx,1             ; pos*2, DW usa 2 bytes de deslocamento
+	add	bx,dx
 	mov	ax,[bx]
 	lea	bx,String
-	;push	cx
 	call	sprintf_w
-	;pop	cx
 	lea	bx,String
 	call	printf_s
 
@@ -948,14 +965,28 @@ SubrotinaRelatorioGeralLinha: ; Label base para cada item
 	lea	bx,RelatorioGeral3
 	call	printf_s
 
+	inc	cx
 	cmp	cx,DtNEng
 	je	SubrotinaRelatorioGeralTotal
-	inc	cx
 
 	jmp	SubrotinaRelatorioGeralLinha
 
-SubrotinaRelatorioGeralTotal: ; Fim da tabela (exibe totais)
-SubrotinaRelatorioGeralFim:
+; Fim da tabela (exibe totais)
+    SubrotinaRelatorioGeralTotal:
+
+	; "TOTAL"
+	lea	bx,RelatorioGeral4
+	call	printf_s
+
+	; "N (visitas)
+	mov	ax,DtNVisitas
+	lea	bx,String
+	call	sprintf_w
+	lea	bx,String
+	call	printf_s
+
+; Fim da subrotina
+    SubrotinaRelatorioGeralFim:
 	call	SubrotinaNavegacao
 
 SubrotinaLeArquivo:
