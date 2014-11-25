@@ -83,11 +83,11 @@ DtNEng		dw		0      ; Numero de engenheiros
 DtCidades	dw		999 dup (0)  ; Lucros de cada cidade
 DtEngLucros	dw		999 dup (0)  ; Lista de lucros/prejuizos totais por engenheiro
 DtEngVisitasPtr	dw		999 dup (0)  ; Lista de ponteiros para visitas de engs
-DtEngVisitas	dw		8096 dup (0) ; Local para conter todas as visitas de engs
 DtEngVisitasT	dw		999 dup (0)  ; Apenas o total de visitas de cada engenheiro
 DtEngVisitasNxt	dw		0      ; Ponteiro para o proximo end de DtEngVisitas
 DtLoop		dw		0      ; Contador de loop generico
 Xpto		dw		0
+DtEngVisitas	dw		8096 dup (0) ; Local para conter todas as visitas de engs
 
 	; Declaração do segmento de código
 	.code
@@ -650,7 +650,6 @@ DbAnalisaSalvaLinha2p:
 DbAnalisaSalvaLinha2p0: ;DtEngVisitasNxt ja esta iniciado, so definir DtEngVisitasPtr
 
 	lea	bx,DtEngVisitasPtr
-	;mov	bx,DtEngVisitasPtr
 	add	bx,DtAtualLinha
 	sub	bx,2    ; As duas primeiras linhas não são visitas, logo remover
 	mov	ax,DtEngVisitasNxt
@@ -658,7 +657,7 @@ DbAnalisaSalvaLinha2p0: ;DtEngVisitasNxt ja esta iniciado, so definir DtEngVisit
 	mov	bx,DtEngVisitasNxt
 	mov	ax,DtAtualInt
 	mov	[bx],ax  ; Salva quantidade de valores no local apontado
-	mov	Xpto,bx ; @debug
+	;mov	Xpto,bx ; @debug
 	;writechar '>'
 	;writenumber [bx]
 	;writenumber byte ptr[DtEngVisitasPtr]
@@ -667,10 +666,13 @@ DbAnalisaSalvaLinha2p0: ;DtEngVisitasNxt ja esta iniciado, so definir DtEngVisit
 	;writechar '<'
 
 	lea	bx,DtEngVisitasT
-	add	bx,DtAtualLinha
-	sub	bx,2
+	mov	dx,DtAtualLinha
+	shl	dx,1 ; L*2
+	add	bx,dx
+	sub	bx,4 ; L - 2 (linhas)
 	mov	ax,DtAtualInt
 	mov	[bx],ax
+	mov	Xpto,bx ; @debug
 
 	inc	DtEngVisitasNxt
 	jmp	DbAnalisaSalvaFim
@@ -685,20 +687,20 @@ DbAnalisaSalvaLinha2p1p: ; Terceira linha ou maior, coluna de valores
 	jmp	DbAnalisaSalvaFim
 
 DbAnalisaSalvaFim:
-	writechar '>'
-	writenumber Xpto
-	writechar '='
-	mov	bx,Xpto
-	writenumber [bx]
-	; writechar ' '
+	; writechar '>'
+	; writenumber Xpto
+	; writechar '='
+	; mov	bx,Xpto
+	; writenumber [bx]
+	; writechar '-'
+	; mov	bx,Xpto
+	; writenumber [bx-1]
+	; writechar '_'
 	; writenumber DtAtualLinha
 	; writechar ' '
 	; writenumber DtAtualColuna
-	; writechar ' '
-	; writenumber DtEngVisitasNxt
-	; writechar ' '
-	; writenumber DtEngVisitas
-	; writechar '<'
+	; writechar CR
+	; writechar LF
 	mov bx,0
 	ret
 DbAnalisaSalva	endp
@@ -737,7 +739,6 @@ TelaAutoria:
 	lea		bx,Autor
 	call	printf_s
 	call	gets
-
 TelaArquivoDados:
         
 	; TELA: Solicitação de arquivo de dados
@@ -802,11 +803,11 @@ TelaEngEscolha:
 TelaEngRelatorio:
 	; TELA: Engenheiro, exibição do relatório específico
 
-	writechar '_'
-	writenumber Xpto
-	writechar '='
-	mov	bx,Xpto
-	writenumber [bx]
+	; writechar '_'
+	; writenumber Xpto
+	; writechar '='
+	; mov	bx,Xpto
+	; writenumber [bx]
 	; writenumber DtEngVisitasPtr
 	; writechar ' '
 	; mov	bx,DtEngVisitasPtr
@@ -831,8 +832,14 @@ TelaEngRelatorio:
 	; lea	bx,DtEngVisitasPtr
 	; add	bx,DtAtualEngSel
 	; mov	ax,[bx]
-	mov bx,Xpto
-	mov	ax,bx
+	;mov	bx,Xpto
+	lea	bx,DtEngVisitasT
+	mov	dx,DtAtualEngSel
+	shl	dx,1 ; * 2, deslocamento dw
+	add	bx,dx
+	mov	ax,[bx]
+	;mov bx,Xpto
+	;mov	ax,bx
 
 	lea	bx,String
 	call	sprintf_w
@@ -842,6 +849,12 @@ TelaEngRelatorio:
 	;"Cidade       Lucro     Prejuizo"
 	lea	bx,RelatorioEng3
 	call	printf_s
+	; writechar '_'
+	; mov bx, offset DtEngVisitasT
+	; writenumber bx
+	; writechar '-'
+	; mov bx,DtEngVisitasT
+	; writenumber bx
 TelaEngRelatorioItens:
 	; Item por item
 
