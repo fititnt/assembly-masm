@@ -6,7 +6,7 @@
 
 	; Declaração do modelo de segmentos
 	.model		small
-INCLUDE /MASM611/INCLUDE/BIOS.INC
+;INCLUDE /MASM611/INCLUDE/BIOS.INC
 	; Declaração do segmento de pilha
 	.stack
 
@@ -609,10 +609,15 @@ DbAnalisaSalvaLinha1:
 
 	; @todo revisar para ver se está realmente salvando em memoria
 	mov	[bx],ax ; Move valor atual para memoria DtCidades+DtAtualColuna
-	;writechar '>'
-	;writenumber [bx]
-	;writenumber DtAtualInt
-	;writechar '<'
+	; writechar '>'
+	; writenumber [bx]
+	; writechar ' '
+	; writenumber [bx]
+	; writechar ' '
+	; writenumber DtCidades
+	; writechar ' '
+	; writenumber DtCidades+1
+	; writechar '<'
 	jmp	DbAnalisaSalvaFim
 
 ; Terceira linha adiante: visitas de engenheiros a cidades
@@ -632,6 +637,7 @@ DbAnalisaSalvaLinha2p:
 DbAnalisaSalvaLinha2p0: ;DtEngVisitasNxt ja esta iniciado, so definir DtEngVisitasPtr
 
 	lea	bx,DtEngVisitasPtr
+	;mov	bx,DtEngVisitasPtr
 	add	bx,DtAtualLinha
 	sub	bx,2    ; As duas primeiras linhas não são visitas, logo remover
 	mov	ax,DtEngVisitasNxt
@@ -771,6 +777,14 @@ TelaEngEscolha:
 TelaEngRelatorio:
 	; TELA: Engenheiro, exibição do relatório específico
 
+	; writechar '>'
+	; writenumber DtEngVisitasPtr
+	; writechar ' '
+	; mov	bx,DtEngVisitasPtr
+	; writenumber [bx]
+	; writechar ' '
+	; writechar '<'
+
 	; "Relatorio do Engenheiro N \0"
 	lea	bx,RelatorioEng1
 	call	printf_s
@@ -873,7 +887,7 @@ SubrotinaRelatorioGeralLinha: ; Label base para cada item
 
 	; Nº visitas
 	mov	bx,DtEngVisitasPtr
-	add	bx,cx
+	;add	bx,cx
 	mov	ax,[bx]
 	lea	bx,String
 	push	cx
