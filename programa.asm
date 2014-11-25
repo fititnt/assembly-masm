@@ -84,8 +84,10 @@ DtCidades	dw		999 dup (0)  ; Lucros de cada cidade
 DtEngLucros	dw		999 dup (0)  ; Lista de lucros/prejuizos totais por engenheiro
 DtEngVisitasPtr	dw		999 dup (0)  ; Lista de ponteiros para visitas de engs
 DtEngVisitas	dw		8096 dup (0) ; Local para conter todas as visitas de engs
+DtEngVisitasT	dw		999 dup (0)  ; Apenas o total de visitas de cada engenheiro
 DtEngVisitasNxt	dw		0      ; Ponteiro para o proximo end de DtEngVisitas
 DtLoop		dw		0      ; Contador de loop generico
+Xpto		dw		0
 
 	; Declaração do segmento de código
 	.code
@@ -308,6 +310,11 @@ printf_s	endp
 
 sprintf_w	proc	near
 
+	push dx
+	push cx
+	push bx
+	push ax
+
 ;void sprintf_w(char *string, WORD n) {
 	mov		sw_n,ax
 
@@ -374,6 +381,12 @@ sw_continua2:
 	mov		byte ptr[bx],0
 
 ;}
+
+	pop ax
+	pop bx
+	pop cx
+	pop dx
+
 	ret
 
 sprintf_w	endp
@@ -645,11 +658,20 @@ DbAnalisaSalvaLinha2p0: ;DtEngVisitasNxt ja esta iniciado, so definir DtEngVisit
 	mov	bx,DtEngVisitasNxt
 	mov	ax,DtAtualInt
 	mov	[bx],ax  ; Salva quantidade de valores no local apontado
+	mov	Xpto,bx ; @debug
 	;writechar '>'
 	;writenumber [bx]
+	;writenumber byte ptr[DtEngVisitasPtr]
 	;writenumber DtEngVisitasPtr
 	;writenumber DtEngVisitasNxt
 	;writechar '<'
+
+	lea	bx,DtEngVisitasT
+	add	bx,DtAtualLinha
+	sub	bx,2
+	mov	ax,DtAtualInt
+	mov	[bx],ax
+
 	inc	DtEngVisitasNxt
 	jmp	DbAnalisaSalvaFim
 
@@ -663,8 +685,11 @@ DbAnalisaSalvaLinha2p1p: ; Terceira linha ou maior, coluna de valores
 	jmp	DbAnalisaSalvaFim
 
 DbAnalisaSalvaFim:
-	; writechar '>'
-	; writenumber DtAtualInt
+	writechar '>'
+	writenumber Xpto
+	writechar '='
+	mov	bx,Xpto
+	writenumber [bx]
 	; writechar ' '
 	; writenumber DtAtualLinha
 	; writechar ' '
@@ -674,6 +699,7 @@ DbAnalisaSalvaFim:
 	; writechar ' '
 	; writenumber DtEngVisitas
 	; writechar '<'
+	mov bx,0
 	ret
 DbAnalisaSalva	endp
 
@@ -740,7 +766,6 @@ TelaResumoGeral:
 	call	sprintf_w
 	lea		bx,String
 	call	printf_s
-
 	;call	DDebubPilha
 
 	;call	gets
@@ -777,7 +802,11 @@ TelaEngEscolha:
 TelaEngRelatorio:
 	; TELA: Engenheiro, exibição do relatório específico
 
-	; writechar '>'
+	writechar '_'
+	writenumber Xpto
+	writechar '='
+	mov	bx,Xpto
+	writenumber [bx]
 	; writenumber DtEngVisitasPtr
 	; writechar ' '
 	; mov	bx,DtEngVisitasPtr
@@ -797,10 +826,14 @@ TelaEngRelatorio:
 	; "Numero de visitas:  N \0"
 	lea	bx,RelatorioEng2
 	call	printf_s
+
 	;@todo N
-	lea	bx,DtEngVisitasPtr
-	add	bx,DtAtualEngSel
-	mov	ax,[bx]
+	; lea	bx,DtEngVisitasPtr
+	; add	bx,DtAtualEngSel
+	; mov	ax,[bx]
+	mov bx,Xpto
+	mov	ax,bx
+
 	lea	bx,String
 	call	sprintf_w
 	lea	bx,String
@@ -860,6 +893,12 @@ SubrotinaNavegacao:
 
 
 SubrotinaRelatorioGeral:
+	writechar '>'
+	writenumber Xpto
+	mov	bx,Xpto
+	writechar ' '
+	writenumber [bx]
+
 	; TELA: Resumo geral dos arquivo de dados (visualização sob demanda)
 	lea		bx,RelatorioGeral
 	call	printf_s
@@ -875,9 +914,9 @@ SubrotinaRelatorioGeralLinha: ; Label base para cada item
 	; Eng nº
 	mov	ax,cx
 	lea	bx,String
-	push	cx
+	;push	cx
 	call	sprintf_w
-	pop	cx
+	;pop	cx
 	lea	bx,String
 	call	printf_s
 
@@ -887,12 +926,12 @@ SubrotinaRelatorioGeralLinha: ; Label base para cada item
 
 	; Nº visitas
 	mov	bx,DtEngVisitasPtr
-	;add	bx,cx
+	add	bx,cx
 	mov	ax,[bx]
 	lea	bx,String
-	push	cx
+	;push	cx
 	call	sprintf_w
-	pop	cx
+	;pop	cx
 	lea	bx,String
 	call	printf_s
 
