@@ -6,7 +6,7 @@
 
 	; Declaração do modelo de segmentos
 	.model		small
-;INCLUDE /MASM611/INCLUDE/BIOS.INC
+
 	; Declaração do segmento de pilha
 	.stack
 
@@ -657,8 +657,6 @@ DbAnalisaSalvaLinha2p:
 	lea	bx,DtNVisitas
 	mov	ax,DtAtualInt
 	add	[bx],ax
-	;writechar '>'
-	;writenumber [bx]
 
 	; Popula ponteiro DtEngVisitasPtr para inicio das viagens de DtEngVisitas (usa DtEngVisitasNxt)
 	lea	ax,DtEngVisitasNxt
@@ -673,13 +671,6 @@ DbAnalisaSalvaLinha2p:
 	sub	bx,4 ; L - 2 (linhas)
 	mov	[bx],ax
 
-	; mov	ax,DtEngVisitasNxt
-	; mov	[bx],ax  ; Ponteiro para lista de valores
-	; mov	bx,DtEngVisitasNxt
-	; mov	ax,DtAtualInt
-	; mov	[bx],ax  ; Salva quantidade de valores no local apontado
-
-	;inc	DtEngVisitasNxt
 	jmp	DbAnalisaSalvaFim
 
 ; Terceira linha ou maior, coluna apenas com locais visitados
@@ -689,19 +680,37 @@ DbAnalisaSalvaLinha2p:
 	mov	ax,DtAtualInt
 	mov	[bx],ax  ; Salva local visitado no local apontado
 
-	; @todo implementar DtAtualLucro
-	; @todo implementar DtEngLucros
-	; @todo implementar DtNLucro
+	; Obtem lucro da visital atual
+	lea	bx,DtCidades
+	mov	dx,DtAtualInt
+	shl	dx,1     ; L*2, deslocamento DW de 2 bytes
+	add	bx,dx
+	mov	ax,[bx]
+	lea	bx,DtAtualLucro
+	mov	[bx],ax
+
+	; Obtem lucro total de visitas DtNLucro
+	lea	bx,DtNLucro
+	mov	ax,DtAtualLucro
+	add	[bx],ax
+
+	; Faz total de lucro por engenheiro no array DtEngLucros
+	lea	bx,DtEngLucros
+	mov	dx,DtAtualLinha
+	shl	dx,1 ; L*2
+	add	bx,dx
+	mov	ax,DtAtualLucro
+	add	[bx],ax
 
 	add	DtEngVisitasNxt,2  ; Preparar para proxima posição de DtEngVisitas
 	jmp	DbAnalisaSalvaFim
 
 DbAnalisaSalvaFim:
-	; writechar '>'
-	; writenumber Xpto
-	; writechar '='
-	; mov	bx,Xpto
-	; writenumber [bx]
+	writechar '>'
+	writenumber DtNLucro
+	writechar '='
+	lea	bx,DtAtualLucro
+	writenumber [bx]
 	; writechar '-'
 	; mov	bx,Xpto
 	; writenumber [bx-1]
@@ -869,10 +878,17 @@ TelaEngRelatorioItens:
 	; Item por item
 
 TelaEngRelatorioFim:
-	; "TOTAL:  NNN,NN    NNN,NN\0"
+	; "TOTAL:  "
 	lea	bx,RelatorioEng4
 	call	printf_s
-	;@todo NNN,NN    NNN,NN
+
+	; NNN,NN    NNN,NN (lucro/prejuizo)
+	; mov	ax,DtNLucro
+	; lea	bx,String
+	; call	sprintf_w
+	; lea	bx,String
+	; call	print_s
+
 	lea	bx,Crlf
 	call	printf_s
 	call	SubrotinaNavegacao
@@ -919,11 +935,11 @@ SubrotinaNavegacao:
 ; Subrotina usada na tela Relatorio Geral
 ;----------------------------------------------
 SubrotinaRelatorioGeral:
-	writechar '>'
-	writenumber DtEngVisitasT
-	mov	bx,DtEngVisitasT
-	writechar ' '
-	writenumber [bx]
+	; writechar '>'
+	; writenumber DtEngVisitasT
+	; mov	bx,DtEngVisitasT
+	; writechar ' '
+	; writenumber [bx]
 
 	; TELA: Resumo geral dos arquivo de dados (visualização sob demanda)
 	lea		bx,RelatorioGeral
@@ -961,6 +977,21 @@ SubrotinaRelatorioGeral:
 	lea	bx,String
 	call	printf_s
 
+	; Espaços
+	lea	bx,RelatorioGeral2
+	call	printf_s
+
+	; Lucro/Prejuizo
+	lea	bx,DtEngLucros
+	mov	dx,cx
+	shl	dx,1             ; pos*2, DW usa 2 bytes de deslocamento
+	add	bx,dx
+	mov	ax,[bx]
+	lea	bx,String
+	call	sprintf_w
+	lea	bx,String
+	call	printf_s
+
 	; Fim de linha
 	lea	bx,RelatorioGeral3
 	call	printf_s
@@ -980,6 +1011,17 @@ SubrotinaRelatorioGeral:
 
 	; "N (visitas)
 	mov	ax,DtNVisitas
+	lea	bx,String
+	call	sprintf_w
+	lea	bx,String
+	call	printf_s
+
+	; "    "
+	lea	bx,RelatorioGeral2
+	call	printf_s
+
+	; NNN,NN    NNN,NN (lucro/prejuizo)
+	mov	ax,DtNLucro
 	lea	bx,String
 	call	sprintf_w
 	lea	bx,String
