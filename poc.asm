@@ -14,7 +14,8 @@
 
 	; Declaração do segmento de dados
 	.data
-DtCidades	dw		10 dup (0)  ; Lucros de cada cidade
+DtCidades	dw		0,1,2,3,4,5,6,7,8,9  ; Lucros de cada cidade
+DtCidadesPtr	dw		10 dup (0)
 Counter		dw		0;
 
 	; Declaração do segmento de código
@@ -35,26 +36,49 @@ ENDM
 	.startup
 	
 lb1:
-	lea	bx,DtCidades
-	add	bx,Counter
-	mov	ax,Counter
+	; Inserido dados no array
+	; lea	bx,DtCidades
+	; add	bx,Counter
+	; mov	ax,Counter
+	; mov	[bx],ax
+
+	; inc	Counter
+	; mov 	ax,Counter
+	; cmp	ax,11
+	; jne	lb1
+
+	; Inserido dados no array
+	mov 	cl,0
+	mov	ch,0
+lb2:
+	lea	bx,DtCidadesPtr
+	add	bx,cx
+	lea	ax,DtCidades
+	add	ax,cx
 	mov	[bx],ax
 
-	
+	inc	cl
+	cmp	cl,10
+	jne	lb2
+
+	; Exibido resultado do array
+	mov 	cl,0
+	mov	ch,0
+	mov	ax,DtCidadesPtr
+
+lb3:
+	add	ax,cx
+	mov	bx, ax
 	; print
-	mov	dl,byte ptr Counter
+	;mov	dl,cl
+	mov	dl,byte ptr[bx]
 	add	dl,49
 	mov ah, 2
 	int 21h
-	
 
-	inc	Counter
-	mov 	ax,Counter
-	cmp	ax,11
-	jne	lb1
-	
-	
-	
+	inc	cx
+	cmp	cx,10
+	jne	lb3
 	
 	.exit
 
