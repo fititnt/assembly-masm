@@ -70,7 +70,7 @@ RelatorioEngN	db		CR,LF,"Engenheiro:",0
 RelatorioEng1	db		CR,LF,"    Relatorio do Engenheiro ",0
 RelatorioEng2	db		CR,LF,"    Numero de visitas: ",0
 RelatorioEng3	db		CR,LF,"    Cidade       Lucro     Prejuizo",CR,LF,0
-RelatorioEng4	db		"      TOTAL        ",CR,LF,0
+RelatorioEng4	db		"      TOTAL     ",0
 RelatorioEng5	db		"        ",0
 RelatorioErro	db		CR,LF,"Numero de engenheiro invalido",0
 EncerramentoMsg	db		CR,LF,"Programa encerrado",0
@@ -657,7 +657,7 @@ DbAnalisaSalvaLinha2p:
 	sub	bx,4 ; L - 2 (linhas)
 	mov	ax,DtAtualInt
 	mov	[bx],ax
-	mov	Xpto,bx ; @debug
+
 
 	; Total de visitas
 	lea	bx,DtNVisitas
@@ -676,6 +676,9 @@ DbAnalisaSalvaLinha2p:
 	add	bx,dx
 	sub	bx,4 ; L - 2 (linhas)
 	mov	[bx],ax
+	;mov	Xpto,[bx] ; @debug
+	;writechar '>'
+	;writenumber ax
 
 	jmp	DbAnalisaSalvaFim
 
@@ -703,6 +706,7 @@ DbAnalisaSalvaLinha2p:
 	; Faz total de lucro por engenheiro no array DtEngLucros
 	lea	bx,DtEngLucros
 	mov	dx,DtAtualLinha
+	sub	dx,2
 	shl	dx,1 ; L*2
 	add	bx,dx
 	mov	ax,DtAtualLucro
@@ -712,11 +716,15 @@ DbAnalisaSalvaLinha2p:
 	jmp	DbAnalisaSalvaFim
 
 DbAnalisaSalvaFim:
-	writechar '>'
-	writenumber DtNLucro
-	writechar '='
-	lea	bx,DtAtualLucro
-	writenumber [bx]
+	;writechar '>'
+	;writenumber Xpto
+	;writechar '='
+	;mov	bx,Xpto
+	;writenumber [bx]
+	;  writenumber DtNLucro
+	; writechar '='
+	; lea	bx,DtAtualLucro
+	; writenumber [bx]
 	; writechar '-'
 	; mov	bx,Xpto
 	; writenumber [bx-1]
@@ -756,15 +764,17 @@ DbStrToValFim:
 DbStrToVal	endp
 
 ;--------------------------------------------------------------------
-;Função para receber um numeral e imprimir com padding na tela
+;Função para receber um numeral e imprimir com padding na tela e ,00
 ;
-;Entra: DX -> Numero inteiro
+;Entra: AX -> Numero inteiro
 ;
 ;--------------------------------------------------------------------
 DbPrintN	proc	near
-	; call	sprintf_w
-	; lea	bx,String
-	; call	printf_s
+	;writechar ' '
+	;lea	bx,String
+	;call	sprintf_w
+	;lea	bx,String
+	;call	printf_s
 	;lea	bx,Virgulas
 	;call	printf_s
 	;writechar '>'
@@ -772,7 +782,7 @@ DbPrintN	proc	near
 
 	mov	Temp,ax
 	cmp	ax,0
-	jne	DbPrintNNegativo
+	jl	DbPrintNNegativo
 
 	lea	bx,Space3
 	call	printf_s
@@ -815,9 +825,22 @@ TelaAutoria:
 TelaArquivoDados:
         
 	; TELA: Solicitação de arquivo de dados
-	;lea		bx,DadosArquivo
-	;call	printf_s
+
+	mov	DtAtualInt,0 ; Necessario resetar
+	mov	DtAtualEngSel,0 ; Necessario resetar
+	mov	DtAtualEhNeg,0 ; Necessario resetar
+	mov	DtAtualLucro,0 ; Necessario resetar
+	mov	DtAtualStringC,0 ; Necessario resetar
+	mov	DtAtualLinha,0 ; Necessario resetar
+	mov	DtAtualColuna,0 ; Necessario resetar
+	mov	DtNCidades,0 ; Necessario resetar
+	mov	DtNEng,0 ; Necessario resetar
+	mov	DtNVisitas,0 ; Necessario resetar
+	mov	DtNLucro,0 ; Necessario resetar
 	mov	DtEngVisitasNxt,0 ; Necessario resetar
+	mov	DtLoop,0 ; Necessario resetar
+	mov	Xpto,0
+
 	jmp		SubrotinaLeArquivo
 	call	gets
 
@@ -848,17 +871,14 @@ TelaAjuda:
 	; TELA: Tela de ajuda
 	lea		bx,Ajuda
 	call	printf_s
-	lea		bx,Cursor
-	call	printf_s
+	;lea		bx,Cursor
+	;call	printf_s
 	;call	gets
 	call	SubrotinaNavegacao
 
 TelaResumoGeralSobDemanda:
 	; TELA: Resumo geral dos arquivo de dados (visualização sob demanda)
-	;lea		bx,RelatorioGeral
-	;call	printf_s
-	;call	gets
-	;call	SubrotinaNavegacao
+
 	call	SubrotinaRelatorioGeral
 
 TelaEngEscolha:
@@ -970,22 +990,18 @@ TelaEngRelatorioFim:
 	call	printf_s
 
 	; NNN,NN    NNN,NN (lucro/prejuizo)
-	; mov	ax,DtNLucro
-	; lea	bx,String
-	; call	sprintf_w
-	; lea	bx,String
-	; call	print_s
+	mov	ax,DtNLucro
+	call	DbPrintN
 
-	lea	bx,Crlf
-	call	printf_s
+	; lea	bx,Crlf
+	; call	printf_s
 	call	SubrotinaNavegacao
 
 TelaEngErro:
 	; TELA: Engenheiro, erro de escolha de engenheiro inválido
 	lea		bx,RelatorioErro
 	call	printf_s
-	;call	gets
-	;call TelaEngEscolha
+
 	call	SubrotinaNavegacao
 
 TelaEncerramento:
@@ -999,8 +1015,10 @@ TelaEncerramento:
 ; Subrotina de navegação. Gerencia input do usuário e navegação em telas
 ;----------------------------------------------
 SubrotinaNavegacao:
-	;call	gets
-	;mov	bx, offset String
+
+	lea	bx,Cursor
+	call	printf_s
+
 	mov	ah,1	; Prepara para obter tecla digitada em al
 	int	21h
 	cmp	al,'a'
@@ -1015,8 +1033,6 @@ SubrotinaNavegacao:
 	je	TelaEncerramento
 	cmp	al,'?'
 	je	TelaAjuda
-	lea	bx,Cursor
-	call	printf_s
 	jmp	SubrotinaNavegacao
 
 ; Subrotina usada na tela Relatorio Geral
@@ -1074,7 +1090,9 @@ SubrotinaRelatorioGeral:
 	shl	dx,1             ; pos*2, DW usa 2 bytes de deslocamento
 	add	bx,dx
 	mov	ax,[bx]
+
 	call	DbPrintN
+	;neg	ax
 	;lea	bx,String
 	;call	sprintf_w
 	;lea	bx,String
