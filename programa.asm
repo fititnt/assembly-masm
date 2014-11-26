@@ -1,5 +1,7 @@
-; @autor Emerson Rocha Luiz <emerson at alligo.com.br>
-; @desc  Programa funcional escrito em assembly, compatível com MASM 6.11+
+; @autor    Emerson Rocha Luiz <emerson at alligo.com.br>
+; @desc     Programa funcional escrito em assembly, compatível com MASM 6.11+
+;           Versão 0.8.1
+; @license  MIT
 ;------------------------------------------------------------------------------
 
 
@@ -890,7 +892,7 @@ TelaEngEscolha:
 	call	atoi                ; Converte string de bx para inteiro em ax
 	mov	DtAtualEngSel,ax
 	cmp	ax,DtNEng
-	jg	TelaEngErro         ; Selecionado Eng superior a qtd de engs
+	jge	TelaEngErro         ; Selecionado Eng superior a qtd de engs
 	;call	SubrotinaNavegacao
 
 TelaEngRelatorio:

@@ -5,5 +5,4 @@ rem masm /Zi poc.asm,poc.obj,poc.lst,poc.crf;
 
 rem Script para LIGAR um arquivo .OBJ
 link /CO programa.obj,,,,;
-rem link /CO poc.obj,,,,;
 
